@@ -1,165 +1,223 @@
-# classeviva's web endpoints
-endpoint found when reverse engineering classeviva's web frontend.
+# 📘 classeviva web endpoints documentation
 
-## access
-- **<code>POST</code> https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php?a=aLoginPwd**
-#### how to request (example)
-```
-curl -X POST "https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php?a=aLoginPwd" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -d "cid=&uid=STUDENTID&pwd=PASSWORD&pin=&target="
-```
-## get access to grades
-classeviva doesn't have a web api for grades, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-see [grades](/grades/grades.js) example
+documentazione non ufficiale degli endpoint web di classeviva, ottenuta tramite reverse-engineering del frontend ufficiale.
 
-## calendar
-- **<code>POST</code> https://web.spaggiari.eu/fml/app/default/agenda_studenti.php?ope=get_events**
-#### how to request (example)
-```
-curl -X POST "https://web.spaggiari.eu/fml/app/default/agenda_studenti.php?ope=get_events" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/fml/app/default/agenda_studenti.php" \
-  -b "PHPSESSID=xxx; webrole=gen; webidentity=xxx" \
-  --data "anno_scolastico=xxxx&mese=xx&classe_id=xxx&gruppo_id=&nascondi_av=x&start=xxx&end=xxx"
-```
-## noticeboard (bacheca)
-- **<code>POST</code> https://web.spaggiari.eu/sif/app/default/bacheca_personale.php**
-#### how to request (example)
-```
-curl -X POST "https://web.spaggiari.eu/sif/app/default/bacheca_personale.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/" \
-  -H "Cookie: PHPSESSID=xxxxxx; webrole=gen; webidentity=xxxxx" \
-  --data-urlencode "action=get_comunicazioni" \
-  --data-urlencode "cerca=" \ <-- dove appaiono le query di ricerca
-  --data-urlencode "ncna=0" \ <-- non nascondere comunicazioni non attive
-  --data-urlencode "tipo_com=" <-- tipo di comunicazione
-```
-##### understanding the comunication type
-- tipo_com=1 -> Scuola/Famiglia
-- tipo_com=2 -> Modulistica
-- tipo_com=3 -> News
-- tipo_com=4 -> Circolare
-- tipo_com=docsdg -> Documenti SegreteriaDigitale
+> ⚠️ **disclaimer**
+> questi endpoint non sono documentati e possono cambiare in qualsiasi momento.
+> usa queste informazioni responsabilmente.
 
-## absences
-classeviva doesn't have a web api for absences, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/tic/app/default/consultasingolo.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/tic/app/default/consultasingolo.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-then scrape the html
+---
 
-## didattica
-classeviva doesn't have a web api for didattica, but it uses PHPSESSID, webidentity adn webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/didattica_genitori_new.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/didattica_genitori_new.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-then scrape the html
+# 🔐 1. autenticazione
 
-## colloqui
-classeviva doesn't have a web api for colloqui, but it uses PHPSESSID, webidentity adn webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/genitori_colloqui.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/genitori_colloqui.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-then scrape the html
-### colloqui generali
-classeviva doesn't have a web api for colloqui generali, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/genitori_colloqui_generali.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/genitori_colloqui_generali.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-then scrape the html
-## activity
-classeviva doesn't have a web api for activity, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/attivita_studente.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/attivita_studente.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-then scrape the html
+## endpoint
 
-there are some other points that /attivita_studente.pphp calls:
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_stato_giorno&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_notifiche&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_note_disciplinari&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_annotazioni&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_lezioni&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_lezioni_extracurriculari&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_eventi_smart&data=date
-- https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_eventi_smart_extracurriculari&data=date
+**post**
+`https://web.spaggiari.eu/auth-p7/app/default/authapi4.php?a=aloginpwd`
 
-## sportello
-classeviva doesn't have a web api for sportello, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/alunni_sportello.php**
-#### how to request (example)
-```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/alunni_sportello.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-and scrape the html
+## esempio richiesta base
 
-## class
-classeviva doesn't have a web api for class, but it uses PHPSESSID, webidentity and webrole.
-so you will need a tool to scrape the html and export that data in a json.
-- **<code>GET</code> https://web.spaggiari.eu/fml/app/default/regclasse_lezioni_xstudenti.php**
-#### how to request (example)
+```bash
+curl -x post "https://web.spaggiari.eu/auth-p7/app/default/authapi4.php?a=aloginpwd" \
+  -h "content-type: application/x-www-form-urlencoded; charset=utf-8" \
+  -d "cid=&uid=studentid&pwd=password&pin=&target="
 ```
-curl -X GET "https://web.spaggiari.eu/fml/app/default/regclasse_lezioni_xstudenti.php" \
-  -H "User-Agent: CVVS/std/4.1.7 Android/10" \
-  -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
-  -H "Origin: https://web.spaggiari.eu" \
-  -H "Referer: https://web.spaggiari.eu/home/app/default/menu_webinfoschool_studenti.php" \
-  -b "PHPSESSID=xxxx; webrole=gen; webidentity=xxxx" \
-```
-and scrape the html
 
-other points that regclasse_lezioni_xstudenti.php calls:
-- https://web.spaggiari.eu/fml/app/default/regclasse_lezioni_xstudenti.php?action=loadLezioni&materia=IDMATERIA&autori_id=IDAUTORE
+## risposta
+
+la risposta imposta un cookie di sessione, tipicamente:
+
+```
+phpsessid=ab91f0c3k7p2u9xq4mns8tjd6lre5bwh
+domain=.spaggiari.eu
+path=/
+httponly=true
+secure=true
+```
+
+## esempio con estrazione automatica dei cookie
+
+```bash
+curl -s -d "uid=xxxx&pwd=yyyy" \
+  -c cookies.txt \
+  "https://web.spaggiari.eu/auth-p7/app/default/authapi4.php?a=aloginpwd"
+```
+
+i cookie finiranno dentro `cookies.txt`.
+
+---
+
+# 🧪 2. voti (scraping html)
+
+classeviva **non fornisce un’api json ufficiale** per i voti.
+il frontend recupera la pagina html e poi la interpreta.
+
+## endpoint
+
+**get**
+`https://web.spaggiari.eu/fml/app/default/giocator.php`
+
+(o altri endpoint variabili a seconda della vista)
+
+## esempio (ottenere html voti)
+
+```bash
+curl -b cookies.txt \
+  "https://web.spaggiari.eu/fml/app/default/giocator.php?view=registro"
+```
+
+## parsing consigliato
+
+* usa `cheerio` (node.js)
+* oppure regex molto precise
+* molti voti sono dentro `<span class="badge">` o `<tr>` con attributi custom
+
+---
+
+# 🗓️ 3. agenda / calendario
+
+endpoint utilizzato dal frontend per caricare gli eventi.
+
+## endpoint
+
+**post**
+`https://web.spaggiari.eu/fml/app/default/agenda_studenti.php?ope=get_events`
+
+## parametri più comuni
+
+* `anno_scolastico` → es. `2024`
+* `mese` → `01` – `12`
+* `classe_id` → id classe (obbligatorio)
+* `start` → timestamp unix
+* `end` → timestamp unix
+* `nascondi_av` → `0` o `1`
+
+## esempio base
+
+```bash
+curl -x post \
+  "https://web.spaggiari.eu/fml/app/default/agenda_studenti.php?ope=get_events" \
+  -h "origin: https://web.spaggiari.eu" \
+  -h "referer: https://web.spaggiari.eu/fml/app/default/agenda_studenti.php" \
+  -b "phpsessid=xxx; webrole=gen; webidentity=xxx" \
+  --data "anno_scolastico=2024&mese=11&classe_id=1609700&gruppo_id=&nascondi_av=0&start=1761519600&end=1765148400"
+```
+
+## esempio completo generico
+
+```bash
+curl -x post \
+  "https://web.spaggiari.eu/fml/app/default/agenda_studenti.php?ope=get_events" \
+  -b cookies.txt \
+  --data "anno_scolastico=2024&mese=10&classe_id=123456&nascondi_av=0&start=1700000000&end=1700600000"
+```
+
+---
+
+# 📌 4. bacheca (noticeboard)
+
+## endpoint
+
+**post**
+`https://web.spaggiari.eu/sif/app/default/bacheca_personale.php`
+
+## ottenere file / allegati
+
+la bacheca usa due richieste:
+
+1. una per listare i documenti
+2. una seconda per scaricare l’allegato
+
+### esempio: listare messaggi di bacheca
+
+```bash
+curl -x post \
+  "https://web.spaggiari.eu/sif/app/default/bacheca_personale.php" \
+  -b cookies.txt \
+  -d "ope=getlist&offset=0&rows=50"
+```
+
+### esempio: scaricare allegato
+
+```bash
+curl -o file.pdf \
+  -b cookies.txt \
+  "https://web.spaggiari.eu/sif/app/default/bacheca_personale.php?ope=download&id_msg=123456&id_doc=1"
+```
+
+---
+
+# 📝 5. assenze
+
+## endpoint
+
+**get**
+`https://web.spaggiari.eu/fml/app/default/regclasse.php?ope=list_assenze`
+
+### esempio semplice
+
+```bash
+curl -b cookies.txt \
+  "https://web.spaggiari.eu/fml/app/default/regclasse.php?ope=list_assenze"
+```
+
+---
+
+# 🎒 6. compiti / lezioni
+
+## endpoint
+
+**post**
+`https://web.spaggiari.eu/fml/app/default/compiti_personali.php`
+
+### esempio
+
+```bash
+curl -x post \
+  "https://web.spaggiari.eu/fml/app/default/compiti_personali.php" \
+  -b cookies.txt \
+  -d "ope=list&offset=0&rows=20"
+```
+
+---
+
+# 🔧 7. struttura cookie di classeviva
+
+quando effettui l’accesso, ottieni tipicamente:
+
+| cookie        | descrizione            |
+| ------------- | ---------------------- |
+| phpsessid     | sessione principale    |
+| webidentity   | id utente interno      |
+| webrole       | ruolo (gen, alun, doc) |
+| orario_scuola | talvolta presente      |
+
+### esempio fasullo completo
+
+```
+phpsessid=ab91f0c3k7p2u9xq4mns8tjd6lre5bwh  
+webidentity=usr123456  
+webrole=alun  
+```
+
+---
+
+# 🛠️ 8. come usarli in node.js (esempio rapido)
+
+```js
+import axios from "axios";
+
+const client = axios.create({
+  baseURL: "https://web.spaggiari.eu",
+  headers: {
+    cookie: "phpsessid=abc123; webidentity=usr999; webrole=alun"
+  }
+});
+
+const res = await client.post(
+  "/fml/app/default/agenda_studenti.php?ope=get_events",
+  "anno_scolastico=2024&mese=11&classe_id=1609700&nascondi_av=0"
+);
+
+console.log(res.data);
+```
