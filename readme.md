@@ -93,7 +93,7 @@ curl -X GET "https://web.spaggiari.eu/fml/app/default/genitori_colloqui.php" \
 ```
 then scrape the html
 ### colloqui generali
-classeviva doesn't have a web api for colloqui generali, but it uses PHPSESSID, webidentity adn webrole.
+classeviva doesn't have a web api for colloqui generali, but it uses PHPSESSID, webidentity and webrole.
 so you will need a tool to scrape the html and export that data in a json.
 - **<code>GET</code> https://web.spaggiari.eu/fml/app/default/genitori_colloqui_generali.php**
 #### how to request (example)
@@ -107,7 +107,7 @@ curl -X GET "https://web.spaggiari.eu/fml/app/default/genitori_colloqui_generali
 ```
 then scrape the html
 ## activity
-classeviva doesn't have a web api for colloqui, but it uses PHPSESSID, webidentity adn webrole.
+classeviva doesn't have a web api for activity, but it uses PHPSESSID, webidentity and webrole.
 so you will need a tool to scrape the html and export that data in a json.
 - **<code>GET</code> https://web.spaggiari.eu/fml/app/default/attivita_studente.php**
 #### how to request (example)
@@ -132,7 +132,7 @@ there are some other points that /attivita_studente.pphp calls:
 - https://web.spaggiari.eu/fml/app/default/attivita_studente.php?a=get_eventi_smart_extracurriculari&data=date
 
 ## sportello
-classeviva doesn't have a web api for sportello, but it uses PHPSESSID, webidentity adn webrole.
+classeviva doesn't have a web api for sportello, but it uses PHPSESSID, webidentity and webrole.
 so you will need a tool to scrape the html and export that data in a json.
 - **<code>GET</code> https://web.spaggiari.eu/fml/app/default/alunni_sportello.php**
 #### how to request (example)
@@ -147,7 +147,7 @@ curl -X GET "https://web.spaggiari.eu/fml/app/default/alunni_sportello.php" \
 and scrape the html
 
 ## class
-classeviva doesn't have a web api for class, but it uses PHPSESSID, webidentity adn webrole.
+classeviva doesn't have a web api for class, but it uses PHPSESSID, webidentity and webrole.
 so you will need a tool to scrape the html and export that data in a json.
 - **<code>GET</code> https://web.spaggiari.eu/fml/app/default/regclasse_lezioni_xstudenti.php**
 #### how to request (example)
