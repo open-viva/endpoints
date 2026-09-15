@@ -11,7 +11,7 @@
 - [Authentication](#authentication)
 - [Endpoints](#endpoints)
   - [User Info](#user-info)
-  - [Daily Overview](daily-overview)
+  - [Daily Overview](#daily-overview)
   - [Student Card](#student-card)
   - [Subjects](#subjects)
   - [Grades](#grades)
