@@ -11,9 +11,11 @@
 - [Authentication](#authentication)
 - [Endpoints](#endpoints)
   - [User Info](#user-info)
+  - [Daily Overview](daily-overview)
   - [Student Card](#student-card)
   - [Subjects](#subjects)
   - [Grades](#grades)
+  - [Average](#average)
   - [Absences](#absences)
   - [Agenda](#agenda)
   - [Lessons](#lessons)
@@ -106,6 +108,40 @@ Returns basic info about the currently authenticated user.
 
 ---
 
+### Daily Overview
+
+```
+GET /rest/w1/students/{studentId}/overview/all26/{dateFrom}/{dateTo}
+```
+
+Returns lessons, homework agenda, and notes for a given day.
+
+**Response:**
+
+```json
+{
+  "virtualClassesAgenda": [],
+  "lessons": [
+    {"evtId": 1, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 1, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente A", "subjectId": 2, "subjectCode": null, "subjectDesc": "EDUCAZIONE CIVICA", "lessonType": "Orientamento", "lessonArg": "Attività di orientamento su tematica proposta dalla scuola."},
+    {"evtId": 2, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 2, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente A", "subjectId": 4, "subjectCode": "LAT", "subjectDesc": "LINGUA E CULTURA LATINA", "lessonType": "Lezione", "lessonArg": "Ripasso argomenti grammaticali."},
+    {"evtId": 3, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 3, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente B", "subjectId": 3, "subjectCode": "FIS", "subjectDesc": "FISICA", "lessonType": "Lezione", "lessonArg": "Introduzione al corso, ripasso argomenti."},
+    {"evtId": 4, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 4, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente B", "subjectId": 3, "subjectCode": "FIS", "subjectDesc": "FISICA", "lessonType": "Lezione", "lessonArg": "Introduzione al corso, ripasso argomenti."},
+    {"evtId": 5, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 5, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente C", "subjectId": 11, "subjectCode": "STG", "subjectDesc": "STORIA E GEOGRAFIA", "lessonType": "Lezione", "lessonArg": "Introduzione alla materia: concetti di base."},
+    {"evtId": 6, "evtDate": "2026-09-15", "evtCode": "LSC0", "evtHPos": 2, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente D", "subjectId": 12, "subjectCode": "SOST", "subjectDesc": "SOSTEGNO", "lessonType": "Compresenza", "lessonArg": ""},
+    {"evtId": 7, "evtDate": "2026-09-15", "evtCode": "LSC0", "evtHPos": 3, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente D", "subjectId": 12, "subjectCode": "SOST", "subjectDesc": "SOSTEGNO", "lessonType": "Compresenza", "lessonArg": "Introduzione al corso, ripasso argomenti."}
+  ],
+  "agenda": [
+    {"evtId": 101, "evtCode": "AGHW", "evtDatetimeBegin": "2026-09-15T00:00:00+02:00", "evtDatetimeEnd": "2026-09-15T23:59:59+02:00", "isFullDay": true, "notes": "Docente A - Compiti inseriti in Didattica", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "homeworkId": 3},
+    {"evtId": 102, "evtCode": "AGHW", "evtDatetimeBegin": "2026-09-15T00:00:00+02:00", "evtDatetimeEnd": "2026-09-15T23:59:59+02:00", "isFullDay": true, "notes": "Docente A - Compiti inseriti in Didattica", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "homeworkId": 4},
+    {"evtId": 103, "evtCode": "AGNT", "evtDatetimeBegin": "2026-09-16T00:00:00+02:00", "evtDatetimeEnd": "2026-09-16T23:59:59+02:00", "isFullDay": true, "notes": "Esercizi assegnati da svolgere per la lezione successiva.", "authorName": "Docente E", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": null, "subjectDesc": null, "homeworkId": null},
+    {"evtId": 104, "evtCode": "AGNT", "evtDatetimeBegin": "2026-09-16T00:00:00+02:00", "evtDatetimeEnd": "2026-09-16T23:59:59+02:00", "isFullDay": true, "notes": "Materiale da portare per la lezione.", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": null, "subjectDesc": null, "homeworkId": null}
+  ],
+  "events": [],
+  "grades": [],
+  "notes": {"NTTE": [], "NTCL": [], "NTWN": [], "NTST": []}
+}
+```
+
 ### Student Card
 
 ```
@@ -131,7 +167,7 @@ Returns detailed student and school information.
     "schCode": "PG000000",
     "schName": "ISTITUTO D'ISTRUZIONE SUPERIORE",
     "schDedication": "...",
-    "schCity": "GUBBIO",
+    "schCity": "PERUGIA",
     "schProv": "PG"
   }
 }
@@ -217,6 +253,36 @@ Returns all grades for the current school year.
 - `decimalValue` is the raw numeric grade; `displayValue` is the formatted string (e.g. `"8-"` = 7.75)
 
 ---
+
+### Average
+
+Returns global average and per-subject average.
+
+```
+GET /rest/w1/students/{studentId}/avg
+```
+
+
+**Response:**
+```json
+{
+  "subjectAverages": {
+    "1": {"subjectId": 1, "subjectCode": null, "subjectDesc": "DISEGNO E STORIA DELL'ARTE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "2": {"subjectId": 2, "subjectCode": null, "subjectDesc": "EDUCAZIONE CIVICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "3": {"subjectId": 3, "subjectCode": null, "subjectDesc": "FISICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "4": {"subjectId": 4, "subjectCode": null, "subjectDesc": "LINGUA E CULTURA LATINA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "5": {"subjectId": 5, "subjectCode": null, "subjectDesc": "LINGUA E CULTURA STRANIERA INGLESE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "6": {"subjectId": 6, "subjectCode": null, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "7": {"subjectId": 7, "subjectCode": null, "subjectDesc": "MATEMATICA E INFORMATICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "8": {"subjectId": 8, "subjectCode": null, "subjectDesc": "RELIGIONE CATTOLICA/ATTIVITA' ALTERNATIVA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "9": {"subjectId": 9, "subjectCode": null, "subjectDesc": "SCIENZE MOTORIE E SPORTIVE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "10": {"subjectId": 10, "subjectCode": null, "subjectDesc": "SCIENZE NATURALI (BIOLOGIA, CHIMICA, SCIENZE DELLA TERRA)", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "11": {"subjectId": 11, "subjectCode": null, "subjectDesc": "STORIA E GEOGRAFIA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
+    "12": {"subjectId": 12, "subjectCode": null, "subjectDesc": "SOSTEGNO", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}}
+  },
+  "generalAverages": []
+}
+```
 
 ### Absences
 
@@ -499,11 +565,14 @@ GET /rest/w1/students/{studentId}/homeworks/index
 
 ```json
 {
-  "items": []
+  "items": [
+    {"evtId": 1, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 1: materiale da portare per esercitazione in classe.", "homeworkDone": false, "assignmentDate": "2026-09-10", "expiryDate": "2026-09-14", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
+    {"evtId": 2, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 2: ripasso argomenti svolti ed esercizi assegnati.", "homeworkDone": false, "assignmentDate": "2026-09-10", "expiryDate": "2026-09-14", "subjectId": 4, "subjectDesc": "LINGUA E CULTURA LATINA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
+    {"evtId": 3, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 3: ripasso argomenti ed esercizi assegnati.", "homeworkDone": false, "assignmentDate": "2026-09-14", "expiryDate": "2026-09-15", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
+    {"evtId": 4, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 4: scegliere un brano da un libro e motivare la scelta.", "homeworkDone": false, "assignmentDate": "2026-09-14", "expiryDate": "2026-09-15", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []}
+  ]
 }
 ```
-
-> Observed to return an empty array in tested accounts. May be populated differently depending on school/teacher configuration.
 
 ---
 
