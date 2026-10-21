@@ -1,0 +1,2941 @@
+openapi: 3.0.3
+info:
+  title: ClasseViva Web API
+  version: 1.0.0
+  description: 'Unofficial, community-maintained description of the ClasseViva (Spaggiari) REST API used by the web client
+    at `web.spaggiari.eu`.
+
+
+    Not affiliated with, endorsed by, or supported by Spaggiari. Use at your own risk and in compliance with the applicable
+    terms of service.
+
+
+    Dates in paths are `YYYYMMDD`. Endpoints without a response schema are not documented yet. From a CDN or similar you need
+    a proxy (e.g. a Cloudflare worker).'
+servers:
+- url: https://web.spaggiari.eu/rest/w1
+  description: REST API
+security:
+- sessionCookie: []
+tags:
+- name: Auth
+- name: User
+- name: Account
+- name: Periods
+- name: Dashboard
+- name: Subjects
+- name: Grades
+- name: Absences
+- name: Agenda
+- name: Lessons
+- name: Noticeboard
+- name: Communications
+- name: Didactics
+- name: Homeworks
+- name: Notes
+- name: Documents
+- name: Talks
+- name: Payments
+- name: Schoolbooks
+- name: Other
+- name: Canteen
+- name: Roll call
+paths:
+  /misc/whoami:
+    get:
+      tags:
+      - User
+      operationId: whoami
+      summary: Current user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoAmI'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/_functions:
+    get:
+      tags:
+      - User
+      operationId: getFunctions
+      summary: Enabled sections and UI options
+      description: Options only control what the web UI shows (e.g. `opt:votiHideAverage` hides averages in the page, `/avg/`
+        still returns them).
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Functions'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/periods:
+    get:
+      tags:
+      - Periods
+      operationId: getPeriods
+      summary: School periods
+      description: '`periodPos` is not sequential (1 and 3 with two periods).'
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Periods'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/card:
+    get:
+      tags:
+      - User
+      operationId: getCard
+      summary: Student card
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentCard'
+        '401':
+          description: Session no longer valid
+  /xauth/myportfolio:
+    get:
+      tags:
+      - Account
+      operationId: getPortfolio
+      summary: Accounts linked to the login
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Portfolio'
+        '401':
+          description: Session no longer valid
+  /xauth/connect:
+    post:
+      tags:
+      - Account
+      operationId: connectAccount
+      summary: Link another account
+      description: Status `waiting-for-validation` means a confirmation mail was sent.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: &id001
+                  type: string
+                password: *id001
+                force: &id003
+                  type: boolean
+              required:
+              - email
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /xauth/disconnect:
+    post:
+      tags:
+      - Account
+      operationId: disconnectAccount
+      summary: Unlink an account
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /xauth/changepassword:
+    post:
+      tags:
+      - Account
+      operationId: changePassword
+      summary: Change password
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPass: *id001
+                newPass: *id001
+                newPassCpy: *id001
+              required:
+              - oldPass
+              - newPass
+              - newPassCpy
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/dashboard:
+    get:
+      tags:
+      - Dashboard
+      operationId: getDashboard
+      summary: Dashboard in one call
+      description: Each key has the same shape as its dedicated endpoint.
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/overview/all26/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Dashboard
+      operationId: getOverview
+      summary: Daily overview
+      description: Lessons, agenda, homework and notes for the range (usually one day). `agenda` can contain items after the
+        requested day.
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/subjects:
+    get:
+      tags:
+      - Subjects
+      operationId: getSubjects
+      summary: Subjects and teachers
+      description: '`teacherId` has an `A` prefix here.'
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subjects'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/grades26:
+    get:
+      tags:
+      - Grades
+      operationId: getGrades
+      summary: All grades of the school year
+      description: The `26` suffix is not the school year (same for 2025/26 and 2026/27).
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grades'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/avg/:
+    get:
+      tags:
+      - Grades
+      operationId: getAverages
+      summary: Global and per-subject averages
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Averages'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/avg/{subjectId}:
+    get:
+      tags:
+      - Grades
+      operationId: getSubjectAverages
+      summary: Averages for one subject
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/subjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Averages'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/absences/details/:
+    get:
+      tags:
+      - Absences
+      operationId: getAbsences
+      summary: All absence and delay events
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Absences'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/absences/details/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Absences
+      operationId: getAbsencesRange
+      summary: Absence events in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Absences'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/absences/librettowebconf:
+    get:
+      tags:
+      - Absences
+      operationId: getLibrettoWebConf
+      summary: Online justification config
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrettoWebConf'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/absences/librettoweb:
+    get:
+      tags:
+      - Absences
+      operationId: getLibrettoWeb
+      summary: Online justifications
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+    post:
+      tags:
+      - Absences
+      operationId: createLibrettoWeb
+      summary: Submit an online justification
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/absences/librettoweb/{id}:
+    delete:
+      tags:
+      - Absences
+      operationId: deleteLibrettoWeb
+      summary: Delete an online justification
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/agendav2/all/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Agenda
+      operationId: getAgenda
+      summary: Agenda events in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agenda'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/agendav2/{evtCode}/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Agenda
+      operationId: getAgendaByCode
+      summary: Agenda events filtered by event code
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/evtCode'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agenda'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/lessons/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Lessons
+      operationId: getLessons
+      summary: Lessons in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lessons'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/lessons/{date}:
+    get:
+      tags:
+      - Lessons
+      operationId: getLessonsDay
+      summary: Lessons of one day
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/date'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lessons'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/lessons/today:
+    get:
+      tags:
+      - Lessons
+      operationId: getLessonsToday
+      summary: Lessons of today
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lessons'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/lessons/subject/{subjectId}/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Lessons
+      operationId: getLessonsBySubject
+      summary: Lessons of one subject in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/subjectId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lessons'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/noticeboard:
+    get:
+      tags:
+      - Noticeboard
+      operationId: getNoticeboard
+      summary: Circulars and board items
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Noticeboard'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/noticeboard/read/{evtCode}/{pubId}/101:
+    post:
+      tags:
+      - Noticeboard
+      operationId: readNotice
+      summary: Mark a notice as read and get its content
+      description: '`101` is a constant always sent by the web client (meaning unknown). Empty form body; JSON body when replying
+        (`needReply` / `needJoin`).'
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/evtCode'
+      - $ref: '#/components/parameters/pubId'
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoticeRead'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/noticeboard/readmulti/{evtCode}/{pubId}/101:
+    post:
+      tags:
+      - Noticeboard
+      operationId: readNoticeMulti
+      summary: Same as read, multi variant
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/evtCode'
+      - $ref: '#/components/parameters/pubId'
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoticeRead'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/noticeboard/attach/{evtCode}/{pubId}/{attachNum}:
+    get:
+      tags:
+      - Noticeboard
+      operationId: downloadNoticeAttachment
+      summary: Download a notice attachment
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/evtCode'
+      - $ref: '#/components/parameters/pubId'
+      - $ref: '#/components/parameters/attachNum'
+      responses:
+        '302':
+          description: Redirect to a temporary signed URL on `cdndoc.spaggiari.eu`; follow it to get the file
+          headers:
+            Location:
+              schema: *id001
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/communications:
+    get:
+      tags:
+      - Communications
+      operationId: getCommunications
+      summary: Communications to the student
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Communications'
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/communications_minister:
+    get:
+      tags:
+      - Communications
+      operationId: getMinisterCommunications
+      summary: Ministerial communications
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Communications'
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/attachments/{a}/{b}/{c}:
+    get:
+      tags:
+      - Communications
+      operationId: getCommunicationAttachment
+      summary: Communication attachment
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/response/{a}/{b}:
+    post:
+      tags:
+      - Communications
+      operationId: postCommunicationResponse
+      summary: Reply to a communication
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/file_response/{a}/{b}:
+    post:
+      tags:
+      - Communications
+      operationId: postCommunicationFile
+      summary: Upload a file reply
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/file_response/{a}/{b}/{c}:
+    delete:
+      tags:
+      - Communications
+      operationId: deleteCommunicationFile
+      summary: Delete a file reply
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/signature/{a}/{b}/{c}:
+    get:
+      tags:
+      - Communications
+      operationId: getCommunicationSignature
+      summary: Get signature
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/signature/{a}/{b}/{c}/{d}:
+    post:
+      tags:
+      - Communications
+      operationId: postCommunicationSignature
+      summary: Sign
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: d
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /noticeboarduser/{studentId}/communication/{a}/{b}/signer:
+    post:
+      tags:
+      - Communications
+      operationId: setCommunicationSigner
+      summary: Set signer
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/didactics:
+    get:
+      tags:
+      - Didactics
+      operationId: getDidactics
+      summary: Teaching materials
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Didactics'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/didactics/item/{id}:
+    get:
+      tags:
+      - Didactics
+      operationId: downloadDidacticsItem
+      summary: Download one material
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/index:
+    get:
+      tags:
+      - Homeworks
+      operationId: getHomeworks
+      summary: Homeworks
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Homeworks'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/downloadTeacherFile/{a}/{b}/{c}:
+    get:
+      tags:
+      - Homeworks
+      operationId: downloadTeacherFile
+      summary: Download a teacher file
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/downloadStudentFile/{a}/{b}/{c}:
+    get:
+      tags:
+      - Homeworks
+      operationId: downloadStudentFile
+      summary: Download a student file
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/insertStudentMsg/{a}/{b}:
+    post:
+      tags:
+      - Homeworks
+      operationId: insertStudentMsg
+      summary: Send a message to the teacher
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/uploadStudentFile/{a}/{b}:
+    post:
+      tags:
+      - Homeworks
+      operationId: uploadStudentFile
+      summary: Upload a student file
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/removeStudentFile/{a}/{b}/{c}:
+    post:
+      tags:
+      - Homeworks
+      operationId: removeStudentFile
+      summary: Remove a student file
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/setTeacherMsgStatus/{a}/{b}:
+    post:
+      tags:
+      - Homeworks
+      operationId: setTeacherMsgStatus
+      summary: Set teacher message status
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/notes/all/:
+    get:
+      tags:
+      - Notes
+      operationId: getNotes
+      summary: Disciplinary notes by category
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notes'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/notes/{type}/read/{id}:
+    post:
+      tags:
+      - Notes
+      operationId: readNote
+      summary: Mark a note as read
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/type'
+      - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/documents:
+    post:
+      tags:
+      - Documents
+      operationId: getDocuments
+      summary: School reports and documents
+      description: Empty body.
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documents'
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/documents/check/{hash}:
+    post:
+      tags:
+      - Documents
+      operationId: checkDocument
+      summary: Check a document
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/hash'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/documents/read/{hash}:
+    post:
+      tags:
+      - Documents
+      operationId: readDocument
+      summary: Download a document
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/hash'
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/teachers:
+    get:
+      tags:
+      - Talks
+      operationId: getTalkTeachers
+      summary: Teachers available for talks
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TalkTeachers'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/getframes/{teacherId}/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Talks
+      operationId: getTalkFrames
+      summary: Talk slots of a teacher
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/teacherId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TalkFrames'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/mytalks:
+    get:
+      tags:
+      - Talks
+      operationId: getMyTalks
+      summary: My booked talks
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTalks'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/mytalks/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Talks
+      operationId: getMyTalksRange
+      summary: My booked talks in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTalks'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/teachersframes2/{dateFrom}/{dateTo}:
+    get:
+      tags:
+      - Talks
+      operationId: getTeachersFrames
+      summary: Slots of all teachers in a range
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - $ref: '#/components/parameters/dateFrom'
+      - $ref: '#/components/parameters/dateTo'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/book/{a}/{b}/{c}:
+    post:
+      tags:
+      - Talks
+      operationId: bookTalk
+      summary: Book a talk
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/delete/{a}:
+    post:
+      tags:
+      - Talks
+      operationId: deleteTalk
+      summary: Cancel a talk
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/mymessage/{a}:
+    post:
+      tags:
+      - Talks
+      operationId: setMyTalkMessage
+      summary: Set my message
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/talks/teachermessage/{a}:
+    post:
+      tags:
+      - Talks
+      operationId: setTeacherTalkMessage
+      summary: Set teacher message
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/overalltalks/list:
+    get:
+      tags:
+      - Talks
+      operationId: getOverallTalks
+      summary: General talks
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverallTalks'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/overalltalks/getframes/{a}/{b}:
+    get:
+      tags:
+      - Talks
+      operationId: getOverallTalkFrames
+      summary: General talk slots
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/overalltalks/book/{a}/{b}/{c}/{d}:
+    post:
+      tags:
+      - Talks
+      operationId: bookOverallTalk
+      summary: Book a general talk
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: d
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/overalltalks/delete/{a}/{b}:
+    post:
+      tags:
+      - Talks
+      operationId: deleteOverallTalk
+      summary: Cancel a general talk
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/payments:
+    get:
+      tags:
+      - Payments
+      operationId: getPayments
+      summary: Payments
+      description: 'Includes previous school years: filter on `schoolYear`. Unpaid installments have `payId: 0`, `payKey:
+        null`, `payDate: null`.'
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payments'
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/downloadfile/{a}:
+    get:
+      tags:
+      - Payments
+      operationId: downloadPaymentFile
+      summary: Download a file
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/downloadpayment/{a}/{b}:
+    get:
+      tags:
+      - Payments
+      operationId: downloadPayment
+      summary: Download a receipt
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/getprivacy:
+    get:
+      tags:
+      - Payments
+      operationId: getPaymentPrivacy
+      summary: Get privacy text
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/setprivacy:
+    post:
+      tags:
+      - Payments
+      operationId: setPaymentPrivacy
+      summary: Accept privacy
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /parents/{studentId}/pagoonline/downloadfileprivacy/{a}:
+    post:
+      tags:
+      - Payments
+      operationId: downloadFilePrivacy
+      summary: Download file after privacy
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/schoolbooks/index:
+    get:
+      tags:
+      - Schoolbooks
+      operationId: getSchoolbooks
+      summary: Adopted textbooks
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schoolbooks'
+        '401':
+          description: Session no longer valid
+  /students/{id}/recoveries/list/{a}:
+    get:
+      tags:
+      - Other
+      operationId: getRecoveries
+      summary: Recoveries
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{id}/newui-feedback:
+    get:
+      tags:
+      - Other
+      operationId: getFeedback
+      summary: Feedback (method unconfirmed)
+      parameters:
+      - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/options/{meal}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenOptions
+      summary: canteenOptions
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/meal'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/events/{a}/{b}/{c}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenEvents
+      summary: canteenEvents
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/events/{a}/{b}:
+    post:
+      tags:
+      - Canteen
+      operationId: canteenPostEvent
+      summary: canteenPostEvent
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/booking_state/{a}/{b}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenBookingState
+      summary: canteenBookingState
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/profile/{meal}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenProfile
+      summary: canteenProfile
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/meal'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/menu/{meal}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenMenu
+      summary: canteenMenu
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/meal'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/summary_meals/{meal}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenSummary
+      summary: canteenSummary
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/meal'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/wallet:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenWallet
+      summary: canteenWallet
+      parameters:
+      - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/file_menu/{a}/{b}/{c}/{d}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenFileMenu
+      summary: canteenFileMenu
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: d
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /canteenuser/{id}/download_file/{a}/{b}:
+    get:
+      tags:
+      - Canteen
+      operationId: canteenDownloadFile
+      summary: canteenDownloadFile
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/options/{a}:
+    get:
+      tags:
+      - Roll call
+      operationId: rollcallOptions
+      summary: rollcallOptions
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/events/{a}/{b}/{c}:
+    get:
+      tags:
+      - Roll call
+      operationId: rollcallEvents
+      summary: rollcallEvents
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: c
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/events/{a}:
+    post:
+      tags:
+      - Roll call
+      operationId: rollcallPostEvent
+      summary: rollcallPostEvent
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/events/{a}/{b}:
+    put:
+      tags:
+      - Roll call
+      operationId: rollcallPutEvent
+      summary: rollcallPutEvent
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+    delete:
+      tags:
+      - Roll call
+      operationId: rollcallDeleteEvent
+      summary: rollcallDeleteEvent
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/booking_state/{a}/{b}:
+    get:
+      tags:
+      - Roll call
+      operationId: rollcallBookingState
+      summary: rollcallBookingState
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      - name: b
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /rollcall/{id}/assets/{a}:
+    get:
+      tags:
+      - Roll call
+      operationId: rollcallAssets
+      summary: rollcallAssets
+      parameters:
+      - $ref: '#/components/parameters/id'
+      - name: a
+        in: path
+        required: true
+        schema: *id001
+        description: Positional id (meaning not fully known)
+      responses:
+        '200':
+          description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /auth-p7/app/default/AuthApi4.php:
+    post:
+      tags:
+      - Auth
+      operationId: login
+      summary: Log in (and pick one of several matching accounts)
+      description: '`a=aLoginPwd` logs in; success is `data.auth.loggedIn === true` (do not rely on `Set-Cookie`). On success
+        the cookies `PHPSESSID`, `webidentity`, `webrole`, `i18n_redirected` are set. `verified: true` with `loggedIn: false`
+        means several accounts match: call `a=aLoginSam` with `uid=<chosen account>`.'
+      servers:
+      - url: https://web.spaggiari.eu
+      security: []
+      parameters:
+      - name: a
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - aLoginPwd
+          - aLoginSamPrep
+          - aLoginSam
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  description: Username
+                pwd:
+                  type: string
+                  description: Password (aLoginPwd)
+                cid:
+                  type: string
+                  description: School code, can be empty
+                pin:
+                  type: string
+                  description: PIN if set, else empty
+                target:
+                  type: string
+                  description: Can be empty
+              required:
+              - uid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Session cookie from login. `webidentity`, `webrole` and `i18n_redirected` are also sent by the browser.
+  parameters:
+    studentId:
+      name: studentId
+      in: path
+      required: true
+      schema: &id002
+        type: integer
+      description: Numeric `id` from `whoami` (not the `S12345678C` ident)
+    id:
+      name: id
+      in: path
+      required: true
+      schema: *id002
+      description: Student id (same as `studentId`) or resource id, see the path
+    dateFrom:
+      name: dateFrom
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{8}$
+      example: '20260901'
+      description: YYYYMMDD
+    dateTo:
+      name: dateTo
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{8}$
+      example: '20270630'
+      description: YYYYMMDD
+    date:
+      name: date
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{8}$
+      example: '20261021'
+      description: YYYYMMDD
+    subjectId:
+      name: subjectId
+      in: path
+      required: true
+      schema: *id002
+    teacherId:
+      name: teacherId
+      in: path
+      required: true
+      schema: *id002
+      description: Numeric, without the `A` prefix
+    evtCode:
+      name: evtCode
+      in: path
+      required: true
+      schema: *id001
+    pubId:
+      name: pubId
+      in: path
+      required: true
+      schema: *id002
+    attachNum:
+      name: attachNum
+      in: path
+      required: true
+      schema: *id002
+    hash:
+      name: hash
+      in: path
+      required: true
+      schema: *id001
+    type:
+      name: type
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+        - NTTE
+        - NTCL
+        - NTWN
+        - NTST
+    meal:
+      name: meal
+      in: path
+      required: true
+      schema:
+        type: string
+        default: pranzo
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+          example: '2026-10-21T16:01:14+02:00'
+        data:
+          type: object
+          properties:
+            auth:
+              type: object
+              properties:
+                verified: *id003
+                loggedIn: *id003
+                actionRequested:
+                  oneOf:
+                  - *id003
+                  - *id001
+                  description: '`false`, or a string such as `changePasswordDialog` (password expired)'
+                hints:
+                  type: array
+                  items: {}
+                errors:
+                  type: array
+                  items: {}
+                accountInfo:
+                  type: object
+                  properties:
+                    type: *id001
+                    id: *id002
+                    cognome: *id001
+                    nome: *id001
+                    cid: *id001
+                redirects:
+                  type: array
+                  items: {}
+                aMode: *id001
+                mMode: *id001
+                errCod:
+                  type: array
+                  items: {}
+            pfolio: *id003
+        error:
+          type: array
+          items: {}
+        api:
+          type: object
+          additionalProperties: true
+    WhoAmI:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '12345678'
+          description: Numeric student id, as a string
+        account_type: *id001
+        sede_codice: *id001
+        anno_scol:
+          type: string
+          example: '2026'
+          description: Start year of the school year
+        cognome: *id001
+        nome: *id001
+        classe_ident: *id001
+        classe_desc: *id001
+        data_nascita:
+          type: string
+          format: date
+          example: '2026-10-21'
+        codice_fisc: *id001
+        login_type:
+          type: string
+          nullable: true
+        last_login_at:
+          type: string
+          nullable: true
+        email: *id001
+        schoolpass: *id001
+    Functions:
+      type: object
+      properties:
+        functions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              title: *id001
+              desc: *id001
+              type: *id001
+              url:
+                type: string
+                nullable: true
+              options:
+                description: Object keyed `opt:*`, or `[]` when empty
+                oneOf:
+                - type: object
+                  additionalProperties: true
+                - type: array
+                  maxItems: 0
+              readonly: *id003
+        appEnabled:
+          type: array
+          items: *id001
+    Periods:
+      type: object
+      properties:
+        periods:
+          type: array
+          items:
+            type: object
+            properties:
+              periodCode: *id001
+              periodPos: *id002
+              periodDesc: *id001
+              periodLabel: *id001
+              isFinal: *id003
+              dateStart:
+                type: string
+                format: date
+                example: '2026-10-21'
+              dateEnd:
+                type: string
+                format: date
+                example: '2026-10-21'
+              miurDivisionCode:
+                type: string
+                nullable: true
+    StudentCard:
+      type: object
+      properties:
+        card:
+          type: object
+          properties:
+            ident: *id001
+            usrType: *id001
+            usrId: *id002
+            miurSchoolCode: *id001
+            miurDivisionCode: *id001
+            firstName: *id001
+            lastName: *id001
+            birthDate:
+              type: string
+              format: date
+              example: '2026-10-21'
+            fiscalCode: *id001
+            schCode: *id001
+            schName:
+              type: string
+              description: Padded with trailing spaces
+            schDedication: *id001
+            schCity: *id001
+            schProv: *id001
+    Portfolio:
+      type: object
+      properties:
+        currentIdent: *id001
+        portfolio:
+          type: object
+          properties:
+            master:
+              type: object
+              properties:
+                id: *id002
+                masterId:
+                  type: integer
+                  nullable: true
+                authType: *id001
+                authString: *id001
+                authDesc: *id001
+                emlFlags: *id002
+                passChanged:
+                  type: string
+                  format: date-time
+                  example: '2026-10-21T16:01:14+02:00'
+                passRemindExpire:
+                  type: string
+                  nullable: true
+                validationNeeded: *id003
+                validationExpire:
+                  type: string
+                  nullable: true
+                insertDT:
+                  type: string
+                  format: date-time
+                  example: '2026-10-21T16:01:14+02:00'
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: *id002
+                  target: *id001
+                  cid: *id001
+                  ident: *id001
+                  userType: *id001
+                  userId: *id002
+                  description: *id001
+                  spsPrivacyFlags: *id002
+                  insertDT:
+                    type: string
+                    format: date-time
+                    example: '2026-10-21T16:01:14+02:00'
+                  personalInfo:
+                    type: object
+                    properties:
+                      firstName: *id001
+                      lastName: *id001
+                      birthDate:
+                        type: string
+                        format: date
+                        example: '2026-10-21'
+                      fiscalCode: *id001
+                      classDesc: *id001
+                      schoolYY: *id002
+    Grade:
+      type: object
+      properties:
+        subjectId: *id002
+        subjectCode:
+          type: string
+          nullable: true
+        subjectDesc: *id001
+        evtId: *id002
+        evtCode: *id001
+        evtDate:
+          type: string
+          format: date
+          example: '2026-10-21'
+        decimalValue:
+          type: number
+          nullable: true
+          description: Raw numeric grade. `null` for non-numeric judgments (e.g. `ds`, `o`)
+        displayValue:
+          type: string
+          description: Formatted grade, e.g. `8½` = 8.5; always usable
+        displaPos: *id002
+        notesForFamily: *id001
+        color:
+          type: string
+          description: 'approx.: green >=6, yellow ~5-6, red <5'
+        canceled: *id003
+        underlined: *id003
+        periodPos: *id002
+        periodDesc: *id001
+        periodLabel: *id001
+        componentPos:
+          type: integer
+          enum:
+          - 1
+          - 2
+          - 3
+          description: 1 Scritto/Grafico, 2 Orale, 3 Pratico
+        componentDesc: *id001
+        weightFactor:
+          type: integer
+          description: Percentage (100 = weight 1)
+        noAverage: *id003
+        teacherName: *id001
+        evtPosition:
+          type: string
+          description: '`S{periodPos}_{componentPos}_{index}`'
+          example: S1_3_1
+      description: '`/dashboard` `latestGrades` also carry empty skill fields (`skillId`, `skillDesc`, `skillCode`, ...)'
+    Grades:
+      type: object
+      properties:
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grade'
+    PeriodAverage:
+      type: object
+      properties:
+        periodPos: *id002
+        periodDesc: *id001
+        periodLabel: *id001
+        average:
+          type: number
+          nullable: true
+        color: *id001
+        gradeCount: *id002
+        subjectCount: *id002
+    PeriodAveragesMap:
+      description: Object keyed `S{periodPos}`, or `[]` when there are no grades
+      oneOf:
+      - type: object
+        additionalProperties:
+          $ref: '#/components/schemas/PeriodAverage'
+      - type: array
+        maxItems: 0
+    SubjectAverage:
+      type: object
+      properties:
+        subjectId: *id002
+        subjectCode:
+          type: string
+          nullable: true
+        subjectDesc: *id001
+        periodAverages:
+          $ref: '#/components/schemas/PeriodAveragesMap'
+        globalAverage:
+          $ref: '#/components/schemas/PeriodAverage'
+    Averages:
+      type: object
+      properties:
+        subjectAverages:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SubjectAverage'
+          description: Keyed by subject id
+        generalAverages:
+          $ref: '#/components/schemas/PeriodAveragesMap'
+    Subjects:
+      type: object
+      properties:
+        subjects:
+          type: array
+          items:
+            type: object
+            properties:
+              id: *id002
+              description: *id001
+              order: *id002
+              teachers:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    teacherId:
+                      type: string
+                      example: A1234567
+                      description: '`A` prefix here'
+                    teacherName: *id001
+    Lesson:
+      type: object
+      properties:
+        evtId: *id002
+        evtDate:
+          type: string
+          format: date
+          example: '2026-10-21'
+        evtCode:
+          type: string
+          enum:
+          - LSF0
+          - LSC0
+          description: LSF0 regular, LSC0 co-presence
+        evtHPos:
+          type: integer
+          description: Slot within the day (1 = first hour)
+        evtDuration: *id002
+        classDesc: *id001
+        authorName: *id001
+        subjectId: *id002
+        subjectCode:
+          type: string
+          nullable: true
+          description: 'Can be null (e.g. Educazione civica): use subjectId'
+        subjectDesc: *id001
+        lessonType:
+          type: string
+          description: Free text set by the teacher
+        lessonArg: *id001
+    Lessons:
+      type: object
+      properties:
+        lessons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+    AgendaEvent:
+      type: object
+      properties:
+        evtId: *id002
+        evtCode:
+          type: string
+          description: AGNT annotation, AGHW homework, AGCR classroom reservation
+        evtDatetimeBegin:
+          type: string
+          format: date-time
+          example: '2026-10-21T16:01:14+02:00'
+        evtDatetimeEnd:
+          type: string
+          format: date-time
+          example: '2026-10-21T16:01:14+02:00'
+        isFullDay: *id003
+        notes: *id001
+        authorName: *id001
+        classDesc: *id001
+        subjectId:
+          type: integer
+          nullable: true
+        subjectDesc:
+          type: string
+          nullable: true
+        homeworkId:
+          type: integer
+          nullable: true
+    Agenda:
+      type: object
+      properties:
+        agenda:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaEvent'
+    AbsenceEvent:
+      type: object
+      properties:
+        evtId: *id002
+        evtCode:
+          type: string
+          enum:
+          - ABA0
+          - ABR0
+          - ABR1
+          - ABU0
+          description: Full-day absence / late / short late / early exit
+        evtDate:
+          type: string
+          format: date
+          example: '2026-10-21'
+        evtHPos:
+          type: integer
+          nullable: true
+        evtValue:
+          type: string
+          nullable: true
+        isJustified: *id003
+        justifReasonCode:
+          type: string
+          nullable: true
+          description: A, AC, B, C, D
+        justifReasonDesc:
+          type: string
+          nullable: true
+        hoursAbsence:
+          type: array
+          items: {}
+        webJustifStatus:
+          type: integer
+          description: 1 = justification waiting for approval
+    Absences:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbsenceEvent'
+    LibrettoWebConf:
+      type: object
+      properties:
+        enableJustA: *id003
+        enableJustR: *id003
+        enableJustU: *id003
+        numDaysStopA: *id002
+        numDaysStopR: *id002
+        numDaysStopU: *id002
+        otherInfo:
+          type: array
+          items: {}
+        causals:
+          type: array
+          items:
+            type: object
+            properties:
+              code: *id001
+              usercode: *id001
+              shortdesc: *id001
+              longdesc: *id001
+    NoticeItem:
+      type: object
+      properties:
+        pubId: *id002
+        pubDT:
+          type: string
+          format: date-time
+          example: '2026-10-21T16:01:14+02:00'
+        readStatus: *id003
+        evtCode: *id001
+        cntId: *id002
+        cntValidFrom:
+          type: string
+          format: date
+          example: '2026-10-21'
+        cntValidTo:
+          type: string
+          format: date
+          example: '2026-10-21'
+        cntValidInRange: *id003
+        cntStatus: *id001
+        cntTitle: *id001
+        cntNum: *id001
+        cntCategory: *id001
+        cntHasChanged: *id003
+        cntHasAttach: *id003
+        needJoin: *id003
+        needReply: *id003
+        needFile: *id003
+        needSign: *id003
+        evento_id: *id001
+        dinsert_allegato: *id001
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              fileName: *id001
+              attachNum: *id002
+    Noticeboard:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoticeItem'
+    NoticeRead:
+      type: object
+      properties:
+        item:
+          type: object
+          properties:
+            title: *id001
+            text: *id001
+        reply:
+          type: object
+          properties:
+            replJoin: *id003
+            replText:
+              type: string
+              nullable: true
+            replFile:
+              type: string
+              nullable: true
+            replSign:
+              nullable: true
+    Communications:
+      type: object
+      properties:
+        communications:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Didactics:
+      type: object
+      properties:
+        didacticts:
+          type: array
+          items:
+            type: object
+            properties:
+              teacherId: *id001
+              teacherName: *id001
+              teacherFirstName: *id001
+              teacherLastName: *id001
+              folders:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    folderId: *id002
+                    folderName: *id001
+                    lastShareDT:
+                      type: string
+                      format: date-time
+                      example: '2026-10-21T16:01:14+02:00'
+                    contents:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          contentId: *id002
+                          contentName: *id001
+                          objectId: *id002
+                          objectType:
+                            type: string
+                            enum:
+                            - file
+                            - link
+                          shareDT:
+                            type: string
+                            format: date-time
+                            example: '2026-10-21T16:01:14+02:00'
+      description: Key is `didacticts` (typo of the original API)
+    Homework:
+      type: object
+      properties:
+        evtId: *id002
+        evtCode: *id001
+        teacherId:
+          type: integer
+          description: Numeric, no `A` prefix
+        teacherName: *id001
+        homeworkDesc: *id001
+        homeworkDone: *id003
+        homeworkMarkedDone: *id003
+        assignmentDate:
+          type: string
+          format: date
+          example: '2026-10-21'
+        assignmentTime:
+          type: string
+          nullable: true
+        expiryDate:
+          type: string
+          format: date
+          example: '2026-10-21'
+        expiryTime:
+          type: string
+          nullable: true
+        studentAttachmentsAllowed: *id003
+        subjectId: *id002
+        subjectDesc: *id001
+        lastStudentMsg:
+          type: string
+          nullable: true
+        lastTeacherMsg:
+          type: string
+          nullable: true
+        newMessages: *id003
+        teacherFiles:
+          type: array
+          items: {}
+        teacherLinks:
+          type: array
+          items: {}
+        studentFiles:
+          type: array
+          items: {}
+        correctedFiles:
+          type: array
+          items: {}
+    Homeworks:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Homework'
+    Notes:
+      type: object
+      properties:
+        NTTE:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        NTCL:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        NTWN:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        NTST:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      description: NTTE teacher annotation, NTCL disciplinary note, NTWN warning, NTST sanction
+    Documents:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        schoolReports:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Dashboard:
+      type: object
+      properties:
+        subjectAverages:
+          oneOf:
+          - type: object
+            additionalProperties: true
+          - type: array
+            maxItems: 0
+        generalAverages:
+          $ref: '#/components/schemas/PeriodAveragesMap'
+        latestGrades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grade'
+        latestAbsences:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbsenceEvent'
+        latestLessons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+        documents:
+          $ref: '#/components/schemas/Documents'
+        homeworks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Homework'
+    Overview:
+      type: object
+      properties:
+        virtualClassesAgenda:
+          type: array
+          items: {}
+        lessons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+        agenda:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaEvent'
+        events:
+          type: array
+          items: {}
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grade'
+        notes:
+          $ref: '#/components/schemas/Notes'
+        homeworks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Homework'
+    TalkTeachers:
+      type: object
+      properties:
+        teachers:
+          type: array
+          items:
+            type: object
+            properties:
+              teacherId: *id002
+              teacherName: *id001
+              subjects:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    subjectId: *id002
+                    description: *id001
+              hasOpenTalks: *id003
+    TalkFrames:
+      type: object
+      properties:
+        frames:
+          type: array
+          items:
+            type: object
+            properties:
+              teacherId: *id002
+              frameId: *id002
+              frameHPos: *id002
+              frameDate:
+                type: string
+                format: date
+                example: '2026-10-21'
+              framePlace: *id001
+              frameTimeRange: *id001
+              frameTimeFrom: *id001
+              frameTimeTo: *id001
+              overallSlots: *id002
+              busySlotMask:
+                type: integer
+                description: Bitmask of busy slots
+              busySlotFlags:
+                type: string
+                description: 'One char per slot: 1 busy, 0 free'
+              message: *id001
+              freeSlotTimeRange:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pos: *id002
+                    time: *id001
+    MyTalks:
+      type: object
+      properties:
+        talks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    OverallTalks:
+      type: object
+      properties:
+        overallTalks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Payments:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              evtId: *id002
+              evtType:
+                type: string
+                enum:
+                - POL01
+                - POL02
+                description: trips/activities, voluntary contributions/fees
+              schoolYear: *id002
+              evtDesc: *id001
+              evtAnn: *id001
+              payReasonId: *id002
+              payReasonDesc: *id001
+              partecipation: *id003
+              cntHasAttach: *id003
+              payPlan:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    payId: *id002
+                    amountDue: &id004
+                      type: number
+                    deadlineDate:
+                      type: string
+                      format: date
+                      example: '2026-10-21'
+                    payExpired: *id003
+                    amountPaid: *id004
+                    amountBonus: *id004
+                    payDate:
+                      type: string
+                      format: date
+                      example: '2026-10-21'
+                      nullable: true
+                    payStatus:
+                      type: integer
+                      description: 0-3 to pay, 4-8 paid, 9 refunded, 10 cancelled
+                    payKey:
+                      type: string
+                      nullable: true
+                    payIndex: *id002
+                    payFile: *id003
+                    scuolapayEnabled: *id003
+    Schoolbooks:
+      type: object
+      properties:
+        schoolbooks:
+          type: array
+          items:
+            type: object
+            properties:
+              courseId: *id002
+              courseDesc: *id001
+              books:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bookId: *id002
+                    isbnCode: *id001
+                    title: *id001
+                    subheading: *id001
+                    volume: *id001
+                    author: *id001
+                    publisher: *id001
+                    subjectDesc: *id001
+                    price: *id004
+                    toBuy: *id003
+                    newAdoption: *id003
+                    alreadyOwned: *id003
+                    alreadyInUse: *id003
+                    recommended: *id003
+                    recommendedFor:
+                      type: string
+                      nullable: true
+                    coverUrl:
+                      type: string
+                      nullable: true
+                    publisherUnlockCode: *id001
