@@ -41,6 +41,7 @@ Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) RES
   - [Schoolbooks](#schoolbooks)
   - [Other endpoints](#other-endpoints)
 - [Data Types Reference](#data-types-reference)
+  - [Quirks to handle](#quirks-to-handle)
 - [Contributing](#contributing)
 
 ---
@@ -430,6 +431,7 @@ Returns all grades for the current school year.
 - `periodPos`: see [Periods](#periods)
 - `componentPos`: `1` Scritto/Grafico, `2` Orale, `3` Pratico
 - `decimalValue` is the raw numeric grade; `displayValue` is the formatted string (e.g. `"8½"` = 8.5)
+- Non-numeric judgments (e.g. `displayValue: "ds"` or `"o"`, seen in Religion) come with **`decimalValue: null`** and `noAverage: true`: always fall back to `displayValue`
 - `weightFactor` is a percentage (`100` = weight 1)
 - Grades in `/dashboard` (`latestGrades`) also include empty skill fields (`skillId`, `skillDesc`, `skillCode`, ...)
 
@@ -653,6 +655,8 @@ GET /rest/w1/students/{studentId}/lessons/20260901/20270630
 **`lessonType`** is free text set by the teacher. Seen: `Lezione`, `Compresenza`, `Prova pratica`, `Orientamento`, `Interrogazione`, `Compito in classe`, `Verifica scritta`, `Verifiche orali`, `Assemblea di istituto`, `Supplenza`.
 
 **`evtHPos`**: lesson slot number within the day (1 = first hour, etc.). A two-hour lesson appears as two entries.
+
+> `subjectCode` can be `null` (seen for subjects such as Educazione civica): use `subjectId` as the key.
 
 ---
 
@@ -1013,6 +1017,9 @@ Booking and messaging (all under `/rest/w1/parents/{studentId}`):
 ---
 
 ### Payments
+> [!note]
+> always use the official spaggiari implementation to make payments
+
 
 ```
 GET /rest/w1/parents/{studentId}/pagoonline/payments
@@ -1186,6 +1193,16 @@ Responses not documented yet. `{a}`, `{b}`, ... are positional ids.
 | Event ID | integer | `630205` |
 
 > Empty collections that are normally objects (e.g. `periodAverages`) come back as `[]`, so check `Array.isArray` before reading keys.
+
+### Quirks to handle
+
+| Quirk | Where |
+|---|---|
+| Empty collections that are normally objects come back as `[]` | `periodAverages`, `generalAverages` |
+| `decimalValue: null` for judgments (`"ds"`, `"o"`) | grades, dashboard `latestGrades` |
+| `subjectCode: null` | lessons, averages |
+| Teacher id with `A` prefix (string) vs numeric | subjects / didactics vs homeworks / talks |
+| Student id is a string in `whoami`, an integer elsewhere | whoami |
 
 ---
 
