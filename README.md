@@ -145,7 +145,7 @@ GET /rest/w1/misc/whoami
   "nome": "MARIO",
   "classe_ident": "1234567",
   "classe_desc": "5A LICEO SCIENTIFICO",
-  "data_nascita": "2011-01-01",
+  "data_nascita": "1911-01-01",
   "codice_fisc": "RSSMRA11A01H501X",
   "login_type": null,
   "last_login_at": null,
@@ -228,7 +228,7 @@ GET /rest/w1/students/{studentId}/card
     "miurDivisionCode": "PGXX000000",
     "firstName": "MARIO",
     "lastName": "ROSSI",
-    "birthDate": "2011-01-01",
+    "birthDate": "1911-01-01",
     "fiscalCode": "RSSMRA11A01H501X",
     "schCode": "PGXX0000",
     "schName": "ISTITUTO D'ISTRUZIONE SUPERIORE",
@@ -284,7 +284,7 @@ Returns the accounts linked to the login.
         "personalInfo": {
           "firstName": "MARIO",
           "lastName": "ROSSI",
-          "birthDate": "2011-01-01",
+          "birthDate": "1911-01-01",
           "fiscalCode": "RSSMRA11A01H501X",
           "classDesc": "5A LICEO SCIENTIFICO",
           "schoolYY": 2026
