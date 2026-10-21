@@ -1,8 +1,15 @@
-# ClasseViva Web API - Reverse Engineering Docs
+# ClasseViva Web API Docs
+Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) REST API used by the web client at `web.spaggiari.eu`.
 
-> Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) REST API used by the web client at `web.spaggiari.eu`.
+> [!WARNING]
+> This documentation is the result of independent analysis.
+> It is not affiliated with, endorsed by, or supported by Spaggiari.
+> Use at your own risk and in compliance with applicable terms of service.
 
-**Disclaimer**: This documentation is the result of independent network analysis. It is not affiliated with, endorsed by, or supported by Spaggiari. Use at your own risk and in compliance with applicable terms of service.
+> [!IMPORTANT]
+> if you're planning to use the API on cdn or similar,
+> you must set up a cloudflare worker that acts as a proxy.
+> see how to setup [here](./worker/README.md).
 
 ---
 
@@ -11,8 +18,12 @@
 - [Authentication](#authentication)
 - [Endpoints](#endpoints)
   - [User Info](#user-info)
-  - [Daily Overview](#daily-overview)
+  - [Menu / Functions](#menu--functions)
+  - [Periods](#periods)
   - [Student Card](#student-card)
+  - [Portfolio](#portfolio)
+  - [Dashboard](#dashboard)
+  - [Daily Overview](#daily-overview)
   - [Subjects](#subjects)
   - [Grades](#grades)
   - [Average](#average)
@@ -20,11 +31,15 @@
   - [Agenda](#agenda)
   - [Lessons](#lessons)
   - [Noticeboard](#noticeboard)
+  - [Communications](#communications)
   - [Didactics (Materials)](#didactics-materials)
   - [Homeworks](#homeworks)
   - [Notes](#notes)
+  - [Documents](#documents)
+  - [Talks (Colloqui)](#talks-colloqui)
+  - [Payments](#payments)
   - [Schoolbooks](#schoolbooks)
-  - [Ministerial Communications](#ministerial-communications)
+  - [Other endpoints](#other-endpoints)
 - [Data Types Reference](#data-types-reference)
 - [Contributing](#contributing)
 
@@ -37,6 +52,8 @@
 | REST API | `https://web.spaggiari.eu/rest/w1/` |
 | Document CDN | `https://cdndoc.spaggiari.eu/` |
 | Auth | `https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php` |
+
+`{studentId}` in the paths below is the numeric `id` returned by `whoami` (usally the codes after "S"), not the `S12345678C` ident code.
 
 ---
 
@@ -52,28 +69,63 @@ POST https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php?a=aLoginPwd
 
 | Field | Description |
 |---|---|
-| `uid` | Username (student code, e.g. `S000000`) |
+| `uid` | Username |
 | `pwd` | Password |
-| `cid` | School code |
-| `pin` | PIN (if set) |
-| `target` | `"genitori"` or `"studenti"` |
+| `cid` | School code (can be empty) |
+| `pin` | PIN (if set, otherwise empty) |
+| `target` | Can be empty |
 
-On success, the server sets the following cookies:
+Example body:
 
-| Cookie | Domain | Description |
-|---|---|---|
-| `PHPSESSID` | `.spaggiari.eu` | Session token (session-scoped) |
-| `webidentity` | `web.spaggiari.eu` | Student identity code (e.g. `S000000`) |
-| `webrole` | `web.spaggiari.eu` | Role identifier (e.g. `gen`) |
-| `i18n_redirected` | `web.spaggiari.eu` | Locale (`it`) |
+```
+cid=&uid=USERNAME&pwd=PASSWORD&pin=&target=
+```
 
-All subsequent API requests must include these cookies.
+**Response:**
+
+```json
+{
+  "time": "2026-10-21T20:05:06+02:00",
+  "data": {
+    "auth": {
+      "verified": true,
+      "loggedIn": true,
+      "actionRequested": false,
+      "hints": [],
+      "errors": [],
+      "accountInfo": { "type": "S", "id": 12345678, "cognome": "ROSSI", "nome": "MARIO", "cid": "PGXX0000" },
+      "redirects": [],
+      "aMode": "sam",
+      "mMode": "SEML",
+      "errCod": []
+    },
+    "pfolio": false
+  },
+  "error": [],
+  "api": { "env": "production", "AuthSpa": { "version": "2.10.3" } }
+}
+```
+
+**Notes:**
+- Success is `data.auth.loggedIn === true`. Don't rely on `Set-Cookie` to detect it: if the request already carries a `PHPSESSID`, the server may not send a new one.
+- `verified: true` with `loggedIn: false` means several accounts match and one must be chosen: `POST AuthApi4.php?a=aLoginSam` with `uid=<chosen account>`.
+- `actionRequested: "changePasswordDialog"` means the password has expired.
+- A 401 on any REST call means the session is no longer valid.
+
+On success the server sets the following cookies, which must be sent on all subsequent requests:
+
+| Cookie | Description |
+|---|---|
+| `PHPSESSID` | Session token |
+| `webidentity` | Account ident (`S{studentId}C`) |
+| `webrole` | Role identifier (e.g. `gen`) |
+| `i18n_redirected` | Locale (`it`) |
 
 ---
 
 ## Endpoints
 
-All endpoints use **GET** unless otherwise noted, and require the session cookies described above.
+All endpoints use **GET** unless otherwise noted, and require the session cookies described above. Dates in paths are `YYYYMMDD`.
 
 ### User Info
 
@@ -81,30 +133,195 @@ All endpoints use **GET** unless otherwise noted, and require the session cookie
 GET /rest/w1/misc/whoami
 ```
 
-Returns basic info about the currently authenticated user.
+**Response:**
+
+```json
+{
+  "id": "12345678",
+  "account_type": "S",
+  "sede_codice": "PGXX0000",
+  "anno_scol": "2026",
+  "cognome": "ROSSI",
+  "nome": "MARIO",
+  "classe_ident": "1234567",
+  "classe_desc": "5A LICEO SCIENTIFICO",
+  "data_nascita": "2011-01-01",
+  "codice_fisc": "RSSMRA11A01H501X",
+  "login_type": null,
+  "last_login_at": null,
+  "email": "mario.rossi@example.com",
+  "schoolpass": "512345678"
+}
+```
+
+> `id` is the numeric student ID used in all `/students/{id}/...` endpoints. `anno_scol` is the start year only (`"2026"` = 2026/27).
+
+---
+
+### Menu / Functions
+
+```
+GET /rest/w1/students/{studentId}/_functions
+```
+
+Returns which sections the school has enabled, plus per-section UI options.
 
 **Response:**
 
 ```json
 {
-  "id": "13000000",
-  "account_type": "S",
-  "sede_codice": "PG00001",
-  "anno_scol": "2025/26",
-  "cognome": "ROSSI",
-  "nome": "MARIO",
-  "classe_ident": "5A",
-  "classe_desc": "5A LICEO SCIENTIFICO",
-  "data_nascita": "2010-03-15",
-  "codice_fisc": "RSSMRA10C15...",
-  "login_type": null,
-  "last_login_at": null,
-  "email": "mario.rossi@example.com",
-  "schoolpass": "PASS"
+  "functions": {
+    "dashboard": { "title": "Dashboard", "desc": "Dashboard", "type": "function", "url": null, "options": [], "readonly": false },
+    "valutazioni": {
+      "title": "Valutazioni", "desc": "Valutazioni", "type": "function", "url": null,
+      "options": { "opt:votiHideAverage": true, "opt:votiWeightEnab": false, "opt:votiUsaNuoveCompetenze": false },
+      "readonly": false
+    },
+    "assenze": { "title": "Assenze", "type": "function", "options": { "opt:librettoWebEnabled": false }, "readonly": false }
+  },
+  "appEnabled": ["ALWSTD", "CVVSTD"]
 }
 ```
 
-> `id` is the numeric student ID used in all other `/students/{id}/...` endpoints.
+**Function keys:** `dashboard`, `oas`, `old_bacheca`, `valutazioni`, `didattica`, `agenda`, `assenze`, `lezioni`, `note_disciplinari`, `colloqui`, `scrutini`, `pol`, `feedback`, `other`, `ap`.
+
+> Options only control what the web UI shows. For example `opt:votiHideAverage` hides averages in the page, but `/avg/` still returns them.
+
+---
+
+### Periods
+
+```
+GET /rest/w1/students/{studentId}/periods
+```
+
+**Response:**
+
+```json
+{
+  "periods": [
+    { "periodCode": "Q1", "periodPos": 1, "periodDesc": "1° PERIODO", "periodLabel": "1° PERIODO", "isFinal": false, "dateStart": "2026-09-01", "dateEnd": "2026-12-04", "miurDivisionCode": null },
+    { "periodCode": "Q3", "periodPos": 3, "periodDesc": "2° PERIODO", "periodLabel": "2° PERIODO", "isFinal": true, "dateStart": "2026-12-05", "dateEnd": "2027-06-08", "miurDivisionCode": null }
+  ]
+}
+```
+
+> `periodPos` is not sequential (1 and 3 with two periods).
+
+---
+
+### Student Card
+
+```
+GET /rest/w1/students/{studentId}/card
+```
+
+**Response:**
+
+```json
+{
+  "card": {
+    "ident": "S12345678C",
+    "usrType": "S",
+    "usrId": 12345678,
+    "miurSchoolCode": "PGXX000000",
+    "miurDivisionCode": "PGXX000000",
+    "firstName": "MARIO",
+    "lastName": "ROSSI",
+    "birthDate": "2011-01-01",
+    "fiscalCode": "RSSMRA11A01H501X",
+    "schCode": "PGXX0000",
+    "schName": "ISTITUTO D'ISTRUZIONE SUPERIORE",
+    "schDedication": "...",
+    "schCity": "CITTA",
+    "schProv": "PG"
+  }
+}
+```
+
+> `schName` and `schDedication` come padded with trailing spaces.
+
+---
+
+### Portfolio
+
+```
+GET /rest/w1/xauth/myportfolio
+```
+
+Returns the accounts linked to the login.
+
+**Response:**
+
+```json
+{
+  "currentIdent": "S12345678C",
+  "portfolio": {
+    "master": {
+      "id": 1000000,
+      "masterId": null,
+      "authType": "email",
+      "authString": "mario.rossi@example.com",
+      "authDesc": "mario.rossi@example.com",
+      "emlFlags": 0,
+      "passChanged": "2025-09-17T15:05:54+02:00",
+      "passRemindExpire": null,
+      "validationNeeded": false,
+      "validationExpire": null,
+      "insertDT": "2025-09-17T15:05:28+02:00"
+    },
+    "items": [
+      {
+        "id": 2000000,
+        "target": "tic",
+        "cid": "PGXX0000",
+        "ident": "S12345678C",
+        "userType": "S",
+        "userId": 12345678,
+        "description": "",
+        "spsPrivacyFlags": 0,
+        "insertDT": "2025-09-17T15:05:28+02:00",
+        "personalInfo": {
+          "firstName": "MARIO",
+          "lastName": "ROSSI",
+          "birthDate": "2011-01-01",
+          "fiscalCode": "RSSMRA11A01H501X",
+          "classDesc": "5A LICEO SCIENTIFICO",
+          "schoolYY": 2026
+        }
+      }
+    ]
+  }
+}
+```
+
+Account management: `POST /rest/w1/xauth/connect`, `POST /rest/w1/xauth/disconnect`, `POST /rest/w1/xauth/changepassword`.
+
+---
+
+### Dashboard
+
+```
+GET /rest/w1/students/{studentId}/dashboard
+```
+
+Everything the dashboard needs in one call.
+
+**Response:**
+
+```json
+{
+  "subjectAverages": {},
+  "generalAverages": {},
+  "latestGrades": [],
+  "latestAbsences": [],
+  "latestLessons": [],
+  "documents": { "documents": [], "schoolReports": [] },
+  "homeworks": []
+}
+```
+
+> Each key has the same shape as its dedicated endpoint (`avg`, `grades26`, `absences/details`, `lessons`, `homeworks/index`).
 
 ---
 
@@ -114,7 +331,7 @@ Returns basic info about the currently authenticated user.
 GET /rest/w1/students/{studentId}/overview/all26/{dateFrom}/{dateTo}
 ```
 
-Returns lessons, homework agenda, and notes for a given day.
+Returns lessons, agenda, homework and notes for the given range (`YYYYMMDD`, usually a single day).
 
 **Response:**
 
@@ -122,56 +339,19 @@ Returns lessons, homework agenda, and notes for a given day.
 {
   "virtualClassesAgenda": [],
   "lessons": [
-    {"evtId": 1, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 1, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente A", "subjectId": 2, "subjectCode": null, "subjectDesc": "EDUCAZIONE CIVICA", "lessonType": "Orientamento", "lessonArg": "Attività di orientamento su tematica proposta dalla scuola."},
-    {"evtId": 2, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 2, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente A", "subjectId": 4, "subjectCode": "LAT", "subjectDesc": "LINGUA E CULTURA LATINA", "lessonType": "Lezione", "lessonArg": "Ripasso argomenti grammaticali."},
-    {"evtId": 3, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 3, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente B", "subjectId": 3, "subjectCode": "FIS", "subjectDesc": "FISICA", "lessonType": "Lezione", "lessonArg": "Introduzione al corso, ripasso argomenti."},
-    {"evtId": 4, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 4, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente B", "subjectId": 3, "subjectCode": "FIS", "subjectDesc": "FISICA", "lessonType": "Lezione", "lessonArg": "Introduzione al corso, ripasso argomenti."},
-    {"evtId": 5, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 5, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente C", "subjectId": 11, "subjectCode": "STG", "subjectDesc": "STORIA E GEOGRAFIA", "lessonType": "Lezione", "lessonArg": "Introduzione alla materia: concetti di base."},
-    {"evtId": 6, "evtDate": "2026-09-15", "evtCode": "LSC0", "evtHPos": 2, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente D", "subjectId": 12, "subjectCode": "SOST", "subjectDesc": "SOSTEGNO", "lessonType": "Compresenza", "lessonArg": ""},
-    {"evtId": 7, "evtDate": "2026-09-15", "evtCode": "LSC0", "evtHPos": 3, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente D", "subjectId": 12, "subjectCode": "SOST", "subjectDesc": "SOSTEGNO", "lessonType": "Compresenza", "lessonArg": "Introduzione al corso, ripasso argomenti."}
+    {"evtId": 1, "evtDate": "2026-09-15", "evtCode": "LSF0", "evtHPos": 1, "evtDuration": 1, "classDesc": "5A LICEO SCIENTIFICO", "authorName": "Docente A", "subjectId": 6, "subjectCode": "ITA", "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lessonType": "Lezione", "lessonArg": "Ripasso argomenti."}
   ],
   "agenda": [
-    {"evtId": 101, "evtCode": "AGHW", "evtDatetimeBegin": "2026-09-15T00:00:00+02:00", "evtDatetimeEnd": "2026-09-15T23:59:59+02:00", "isFullDay": true, "notes": "Docente A - Compiti inseriti in Didattica", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "homeworkId": 3},
-    {"evtId": 102, "evtCode": "AGHW", "evtDatetimeBegin": "2026-09-15T00:00:00+02:00", "evtDatetimeEnd": "2026-09-15T23:59:59+02:00", "isFullDay": true, "notes": "Docente A - Compiti inseriti in Didattica", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "homeworkId": 4},
-    {"evtId": 103, "evtCode": "AGNT", "evtDatetimeBegin": "2026-09-16T00:00:00+02:00", "evtDatetimeEnd": "2026-09-16T23:59:59+02:00", "isFullDay": true, "notes": "Esercizi assegnati da svolgere per la lezione successiva.", "authorName": "Docente E", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": null, "subjectDesc": null, "homeworkId": null},
-    {"evtId": 104, "evtCode": "AGNT", "evtDatetimeBegin": "2026-09-16T00:00:00+02:00", "evtDatetimeEnd": "2026-09-16T23:59:59+02:00", "isFullDay": true, "notes": "Materiale da portare per la lezione.", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": null, "subjectDesc": null, "homeworkId": null}
+    {"evtId": 101, "evtCode": "AGNT", "evtDatetimeBegin": "2026-09-16T00:00:00+02:00", "evtDatetimeEnd": "2026-09-16T23:59:59+02:00", "isFullDay": true, "notes": "Esercizi da svolgere.", "authorName": "Docente A", "classDesc": "5A LICEO SCIENTIFICO", "subjectId": null, "subjectDesc": null, "homeworkId": null}
   ],
   "events": [],
   "grades": [],
-  "notes": {"NTTE": [], "NTCL": [], "NTWN": [], "NTST": []}
+  "notes": {"NTTE": [], "NTCL": [], "NTWN": [], "NTST": []},
+  "homeworks": []
 }
 ```
 
-### Student Card
-
-```
-GET /rest/w1/students/{studentId}/card
-```
-
-Returns detailed student and school information.
-
-**Response:**
-
-```json
-{
-  "card": {
-    "ident": "S000000",
-    "usrType": "S",
-    "usrId": 13000000,
-    "miurSchoolCode": "PG000000",
-    "miurDivisionCode": "PG000000",
-    "firstName": "MARIO",
-    "lastName": "ROSSI",
-    "birthDate": "2010-03-15",
-    "fiscalCode": "RSSMRA10C15...",
-    "schCode": "PG000000",
-    "schName": "ISTITUTO D'ISTRUZIONE SUPERIORE",
-    "schDedication": "...",
-    "schCity": "PERUGIA",
-    "schProv": "PG"
-  }
-}
-```
+> `agenda` can contain items dated after the requested day. `homeworks` items have the same shape as in [Homeworks](#homeworks).
 
 ---
 
@@ -181,8 +361,6 @@ Returns detailed student and school information.
 GET /rest/w1/students/{studentId}/subjects
 ```
 
-Returns the list of subjects and their assigned teachers.
-
 **Response:**
 
 ```json
@@ -191,24 +369,23 @@ Returns the list of subjects and their assigned teachers.
     {
       "id": 210068,
       "description": "DISEGNO E STORIA DELL'ARTE",
-      "order": 50,
+      "order": 14,
       "teachers": [
-        {
-          "teacherId": "A0000000",
-          "teacherName": "SURNAME NAME"
-        }
+        { "teacherId": "A1234567", "teacherName": "SURNAME NAME" }
       ]
     }
   ]
 }
 ```
 
+> `teacherId` here has an `A` prefix. In homeworks and talks the teacher id is numeric only (`1234567`).
+
 ---
 
 ### Grades
 
 ```
-GET /rest/w1/students/{studentId}/grades26 // maybe 27 next year
+GET /rest/w1/students/{studentId}/grades26
 ```
 
 Returns all grades for the current school year.
@@ -224,11 +401,11 @@ Returns all grades for the current school year.
       "subjectDesc": "DISEGNO E STORIA DELL'ARTE",
       "evtId": 651664,
       "evtCode": "GRV0",
-      "evtDate": "2025-10-24",
+      "evtDate": "2026-10-24",
       "decimalValue": 7.0,
       "displayValue": "7",
       "displaPos": 1,
-      "notesForFamily": "...",
+      "notesForFamily": "",
       "color": "green",
       "canceled": false,
       "underlined": false,
@@ -237,7 +414,7 @@ Returns all grades for the current school year.
       "periodLabel": "1° PERIODO",
       "componentPos": 3,
       "componentDesc": "Pratico",
-      "weightFactor": 1,
+      "weightFactor": 100,
       "noAverage": false,
       "teacherName": "SURNAME NAME",
       "evtPosition": "S1_3_1"
@@ -247,10 +424,14 @@ Returns all grades for the current school year.
 ```
 
 **Notes:**
+- The `26` suffix is not the school year: it is the same for 2025/26 and 2026/27.
 - `evtPosition` format: `S{periodPos}_{componentPos}_{index}`
 - `color`: `"green"` (≥6), `"yellow"` (~5-6), `"red"` (<5) - approximately
-- `periodPos`: 1 = first semester, 3 = second semester (observed values) (if you you use semester)
-- `decimalValue` is the raw numeric grade; `displayValue` is the formatted string (e.g. `"8-"` = 7.75)
+- `periodPos`: see [Periods](#periods)
+- `componentPos`: `1` Scritto/Grafico, `2` Orale, `3` Pratico
+- `decimalValue` is the raw numeric grade; `displayValue` is the formatted string (e.g. `"8½"` = 8.5)
+- `weightFactor` is a percentage (`100` = weight 1)
+- Grades in `/dashboard` (`latestGrades`) also include empty skill fields (`skillId`, `skillDesc`, `skillCode`, ...)
 
 ---
 
@@ -259,35 +440,50 @@ Returns all grades for the current school year.
 Returns global average and per-subject average.
 
 ```
-GET /rest/w1/students/{studentId}/avg
+GET /rest/w1/students/{studentId}/avg/
+GET /rest/w1/students/{studentId}/avg/{subjectId}
 ```
 
-
 **Response:**
+
 ```json
 {
   "subjectAverages": {
-    "1": {"subjectId": 1, "subjectCode": null, "subjectDesc": "DISEGNO E STORIA DELL'ARTE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "2": {"subjectId": 2, "subjectCode": null, "subjectDesc": "EDUCAZIONE CIVICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "3": {"subjectId": 3, "subjectCode": null, "subjectDesc": "FISICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "4": {"subjectId": 4, "subjectCode": null, "subjectDesc": "LINGUA E CULTURA LATINA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "5": {"subjectId": 5, "subjectCode": null, "subjectDesc": "LINGUA E CULTURA STRANIERA INGLESE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "6": {"subjectId": 6, "subjectCode": null, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "7": {"subjectId": 7, "subjectCode": null, "subjectDesc": "MATEMATICA E INFORMATICA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "8": {"subjectId": 8, "subjectCode": null, "subjectDesc": "RELIGIONE CATTOLICA/ATTIVITA' ALTERNATIVA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "9": {"subjectId": 9, "subjectCode": null, "subjectDesc": "SCIENZE MOTORIE E SPORTIVE", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "10": {"subjectId": 10, "subjectCode": null, "subjectDesc": "SCIENZE NATURALI (BIOLOGIA, CHIMICA, SCIENZE DELLA TERRA)", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "11": {"subjectId": 11, "subjectCode": null, "subjectDesc": "STORIA E GEOGRAFIA", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}},
-    "12": {"subjectId": 12, "subjectCode": null, "subjectDesc": "SOSTEGNO", "periodAverages": [], "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}}
+    "407840": {
+      "subjectId": 407840,
+      "subjectCode": "EDC",
+      "subjectDesc": "EDUCAZIONE CIVICA",
+      "periodAverages": {
+        "S1": {"periodPos": 1, "periodDesc": "1° PERIODO", "periodLabel": "1° PERIODO", "average": 9.5, "color": "green", "gradeCount": 2}
+      },
+      "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": 9.5, "color": "green", "gradeCount": 2}
+    },
+    "210068": {
+      "subjectId": 210068,
+      "subjectCode": null,
+      "subjectDesc": "DISEGNO E STORIA DELL'ARTE",
+      "periodAverages": [],
+      "globalAverage": {"periodPos": 0, "periodDesc": "Generale", "periodLabel": "", "average": null, "color": "orange", "gradeCount": 0}
+    }
   },
-  "generalAverages": []
+  "generalAverages": {
+    "S1": {"periodPos": 1, "periodDesc": "1° PERIODO", "periodLabel": "1° PERIODO", "average": 8.95, "color": "green", "subjectCount": 5}
+  }
 }
 ```
+
+**Notes:**
+- `subjectAverages` is keyed by subject id.
+- `periodAverages` and `generalAverages` are objects keyed `S{periodPos}`, or an empty array `[]` when there are no grades.
+- `average` is `null` and `color` is `"orange"` when a subject has no grades.
+
+---
 
 ### Absences
 
 ```
 GET /rest/w1/students/{studentId}/absences/details/
+GET /rest/w1/students/{studentId}/absences/details/{dateFrom}/{dateTo}
 ```
 
 Returns all absence and delay events.
@@ -300,7 +496,7 @@ Returns all absence and delay events.
     {
       "evtId": 543814,
       "evtCode": "ABA0",
-      "evtDate": "2025-09-22",
+      "evtDate": "2026-09-22",
       "evtHPos": null,
       "evtValue": null,
       "isJustified": true,
@@ -318,14 +514,47 @@ Returns all absence and delay events.
 | Code | Description |
 |---|---|
 | `ABA0` | Full-day absence |
-| `ABU0` | Late entry / early exit (see `evtHPos` for lesson slot) |
+| `ABR0` | Late entry |
+| `ABR1` | Short late entry |
+| `ABU0` | Early exit (see `evtHPos` for lesson slot) |
 
-**Justification reason codes (observed):**
+**Justification state:** if `isJustified` is true the event is justified; otherwise `webJustifStatus: 1` means a justification is waiting for approval; otherwise it is still to justify.
+
+**Justification reason codes:**
 
 | Code | Description |
 |---|---|
 | `A` | Motivi di salute |
+| `AC` | Motivi di salute + certificato medico |
 | `B` | Motivi di famiglia |
+| `C` | Altri motivi |
+| `D` | Problemi di trasporto / traffico |
+
+#### Online justification
+
+```
+GET    /rest/w1/students/{studentId}/absences/librettowebconf
+GET    /rest/w1/students/{studentId}/absences/librettoweb
+POST   /rest/w1/students/{studentId}/absences/librettoweb
+DELETE /rest/w1/students/{studentId}/absences/librettoweb/{id}
+```
+
+`librettowebconf` response:
+
+```json
+{
+  "enableJustA": false,
+  "enableJustR": false,
+  "enableJustU": false,
+  "numDaysStopA": 99,
+  "numDaysStopR": 99,
+  "numDaysStopU": 99,
+  "otherInfo": [],
+  "causals": [
+    {"code": "A", "usercode": "A", "shortdesc": "Salute", "longdesc": "Motivi di salute"}
+  ]
+}
+```
 
 ---
 
@@ -333,15 +562,14 @@ Returns all absence and delay events.
 
 ```
 GET /rest/w1/students/{studentId}/agendav2/all/{dateFrom}/{dateTo}
+GET /rest/w1/students/{studentId}/agendav2/{evtCode}/{dateFrom}/{dateTo}
 ```
 
-Returns agenda events (homework assignments, tests, reminders) in the given date range.
-
-**Date format:** `YYYYMMDD`
+Returns agenda events (homework assignments, tests, reminders) in the given date range. The second form filters by event code.
 
 **Example:**
 ```
-GET /rest/w1/students/{studentId}/agendav2/all/20250901/20260630
+GET /rest/w1/students/{studentId}/agendav2/all/20260901/20261221
 ```
 
 **Response:**
@@ -352,8 +580,8 @@ GET /rest/w1/students/{studentId}/agendav2/all/20250901/20260630
     {
       "evtId": 630205,
       "evtCode": "AGNT",
-      "evtDatetimeBegin": "2025-11-19T10:00:00+01:00",
-      "evtDatetimeEnd": "2025-11-19T11:00:00+01:00",
+      "evtDatetimeBegin": "2026-11-19T10:00:00+01:00",
+      "evtDatetimeEnd": "2026-11-19T11:00:00+01:00",
       "isFullDay": false,
       "notes": "Verifica scritta di fisica",
       "authorName": "SURNAME NAME",
@@ -366,19 +594,30 @@ GET /rest/w1/students/{studentId}/agendav2/all/20250901/20260630
 }
 ```
 
+**Event codes:**
+
+| Code | Description |
+|---|---|
+| `AGNT` | Teacher annotation |
+| `AGHW` | Assigned homework (`homeworkId` links to [Homeworks](#homeworks)) |
+| `AGCR` | Classroom reservation |
+
 ---
 
 ### Lessons
 
 ```
 GET /rest/w1/students/{studentId}/lessons/{dateFrom}/{dateTo}
+GET /rest/w1/students/{studentId}/lessons/{date}
+GET /rest/w1/students/{studentId}/lessons/today
+GET /rest/w1/students/{studentId}/lessons/subject/{subjectId}/{dateFrom}/{dateTo}
 ```
 
-Returns lesson log entries in the given date range. Same date format as Agenda (`YYYYMMDD`).
+Returns lesson log entries.
 
 **Example:**
 ```
-GET /rest/w1/students/{studentId}/lessons/20250901/20260630
+GET /rest/w1/students/{studentId}/lessons/20260901/20270630
 ```
 
 **Response:**
@@ -388,7 +627,7 @@ GET /rest/w1/students/{studentId}/lessons/20250901/20260630
   "lessons": [
     {
       "evtId": 26623458,
-      "evtDate": "2026-06-04",
+      "evtDate": "2026-10-21",
       "evtCode": "LSF0",
       "evtHPos": 1,
       "evtDuration": 1,
@@ -409,9 +648,11 @@ GET /rest/w1/students/{studentId}/lessons/20250901/20260630
 | Code | Description |
 |---|---|
 | `LSF0` | Regular lesson |
-| `LSS0` | Co-presence (compresenza, e.g. support teacher) |
+| `LSC0` | Co-presence (compresenza, e.g. support teacher) |
 
-**`evtHPos`**: lesson slot number within the day (1 = first hour, etc.)
+**`lessonType`** is free text set by the teacher. Seen: `Lezione`, `Compresenza`, `Prova pratica`, `Orientamento`, `Interrogazione`, `Compito in classe`, `Verifica scritta`, `Verifiche orali`, `Assemblea di istituto`, `Supplenza`.
+
+**`evtHPos`**: lesson slot number within the day (1 = first hour, etc.). A two-hour lesson appears as two entries.
 
 ---
 
@@ -431,17 +672,17 @@ Returns the list of circular notices (circolari) and other board items.
 {
   "items": [
     {
-      "pubId": 34992568,
-      "pubDT": "2026-06-03T11:57:09+02:00",
+      "pubId": 40000001,
+      "pubDT": "2026-10-21T16:01:14+02:00",
       "readStatus": true,
       "evtCode": "CF",
-      "cntId": 14339567,
-      "cntValidFrom": "2026-06-03",
-      "cntValidTo": "2026-06-06",
+      "cntId": 14000001,
+      "cntValidFrom": "2026-10-21",
+      "cntValidTo": "2026-10-30",
       "cntValidInRange": true,
       "cntStatus": "active",
-      "cntTitle": "CIRC. N. 518 - Evento OTTANTA ANNI REPUBBLICA",
-      "cntNum": "740",
+      "cntTitle": "CIRC. N. 110 - Titolo della circolare",
+      "cntNum": "136",
       "cntCategory": "Circolare",
       "cntHasChanged": false,
       "cntHasAttach": true,
@@ -449,9 +690,11 @@ Returns the list of circular notices (circolari) and other board items.
       "needReply": false,
       "needFile": false,
       "needSign": false,
+      "evento_id": "14000001",
+      "dinsert_allegato": "2026-10-21 16:01:13",
       "attachments": [
         {
-          "fileName": "CIRC. N. 518 - Evento OTTANTA ANNI REPUBBLICA.pdf",
+          "fileName": "Circolare.pdf",
           "attachNum": 1
         }
       ]
@@ -460,24 +703,29 @@ Returns the list of circular notices (circolari) and other board items.
 }
 ```
 
+`evtCode` values seen: `CF`, `CF_SDG`. `cntCategory` values seen: `Circolare`, `Scuola/famiglia`.
+
 #### Read a notice (mark as read + get content)
 
 ```
-GET /rest/w1/students/{studentId}/noticeboard/readmulti/{evtCode}/{pubId}/101
+POST /rest/w1/students/{studentId}/noticeboard/read/{evtCode}/{pubId}/101
+POST /rest/w1/students/{studentId}/noticeboard/readmulti/{evtCode}/{pubId}/101
 ```
 
 **Path params taken from the list response:**
 - `evtCode`: e.g. `CF`
-- `pubId`: e.g. `34992568`
-- `101`: don't know what is this for
+- `pubId`: e.g. `40000001`
+- `101`: constant always used by the web client, meaning unknown
+
+Empty body with `Content-Type: application/x-www-form-urlencoded`. When replying to a notice (`needReply` / `needJoin`) the body is JSON.
 
 **Response:**
 
 ```json
 {
   "item": {
-    "title": "740 - CIRC. N. 518 - Evento OTTANTA ANNI REPUBBLICA",
-    "text": "CIRC. N. 518 - Evento OTTANTA ANNI REPUBBLICA"
+    "title": "136 - CIRC. N. 110 - Titolo della circolare",
+    "text": "Testo del messaggio"
   },
   "reply": {
     "replJoin": false,
@@ -489,12 +737,43 @@ GET /rest/w1/students/{studentId}/noticeboard/readmulti/{evtCode}/{pubId}/101
 ```
 
 #### Download attachment
- 
+
 ```
-/rest/w1/students/{studentId}/noticeboard/attach/{evtCode}/{pubId}/{attachNum}
+GET /rest/w1/students/{studentId}/noticeboard/attach/{evtCode}/{pubId}/{attachNum}
 ```
 
-returns a binary file.
+Answers `302` with a `Location` to a temporary signed URL on `cdndoc.spaggiari.eu`; follow the redirect to get the binary file.
+
+---
+
+### Communications
+
+```
+GET /rest/w1/noticeboarduser/{studentId}/communications
+GET /rest/w1/noticeboarduser/{studentId}/communications_minister
+```
+
+Returns communications directed to the student, including ministerial ones.
+
+**Response:**
+
+```json
+{
+  "communications": []
+}
+```
+
+Related actions (all under `/rest/w1/noticeboarduser/{studentId}`):
+
+| Method | Path |
+|---|---|
+| GET | `/attachments/{a}/{b}/{c}` |
+| POST | `/response/{a}/{b}` |
+| POST | `/file_response/{a}/{b}` |
+| DELETE | `/file_response/{a}/{b}/{c}` |
+| GET | `/signature/{a}/{b}/{c}` |
+| POST | `/signature/{a}/{b}/{c}/{d}` |
+| POST | `/communication/{a}/{b}/signer` |
 
 ---
 
@@ -502,9 +781,10 @@ returns a binary file.
 
 ```
 GET /rest/w1/students/{studentId}/didactics
+GET /rest/w1/students/{studentId}/didactics/item/{id}
 ```
 
-Returns teaching materials shared by teachers, organized in folders.
+Returns teaching materials shared by teachers, organized in folders. The `item` endpoint downloads one entry.
 
 **Response:**
 
@@ -512,7 +792,7 @@ Returns teaching materials shared by teachers, organized in folders.
 {
   "didacticts": [
     {
-      "teacherId": "A0000000",
+      "teacherId": "A1234567",
       "teacherName": "SURNAME NAME",
       "teacherFirstName": "NAME",
       "teacherLastName": "SURNAME",
@@ -544,7 +824,7 @@ Returns teaching materials shared by teachers, organized in folders.
 }
 ```
 
-> **Note:** The response key is `"didacticts"` (typo in the original API).
+> **Note:** The response key is `"didacticts"` (typo in the original API). It is `[]` when there is no material.
 
 **`objectType` values (observed):**
 
@@ -566,13 +846,43 @@ GET /rest/w1/students/{studentId}/homeworks/index
 ```json
 {
   "items": [
-    {"evtId": 1, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 1: materiale da portare per esercitazione in classe.", "homeworkDone": false, "assignmentDate": "2026-09-10", "expiryDate": "2026-09-14", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
-    {"evtId": 2, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 2: ripasso argomenti svolti ed esercizi assegnati.", "homeworkDone": false, "assignmentDate": "2026-09-10", "expiryDate": "2026-09-14", "subjectId": 4, "subjectDesc": "LINGUA E CULTURA LATINA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
-    {"evtId": 3, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 3: ripasso argomenti ed esercizi assegnati.", "homeworkDone": false, "assignmentDate": "2026-09-14", "expiryDate": "2026-09-15", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []},
-    {"evtId": 4, "evtCode": "NEWDC", "teacherId": 1, "teacherName": "Docente A", "homeworkDesc": "Attività 4: scegliere un brano da un libro e motivare la scelta.", "homeworkDone": false, "assignmentDate": "2026-09-14", "expiryDate": "2026-09-15", "subjectId": 6, "subjectDesc": "LINGUA E LETTERATURA ITALIANA", "lastStudentMsg": null, "lastTeacherMsg": null, "newMessages": false, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": []}
+    {
+      "evtId": 125021,
+      "evtCode": "NEWDC",
+      "teacherId": 1234567,
+      "teacherName": "SURNAME NAME",
+      "homeworkDesc": "Testo del compito",
+      "homeworkDone": false,
+      "homeworkMarkedDone": true,
+      "assignmentDate": "2026-09-10",
+      "assignmentTime": null,
+      "expiryDate": "2026-09-14",
+      "expiryTime": null,
+      "studentAttachmentsAllowed": false,
+      "subjectId": 210064,
+      "subjectDesc": "LINGUA E LETTERATURA ITALIANA",
+      "lastStudentMsg": null,
+      "lastTeacherMsg": null,
+      "newMessages": false,
+      "teacherFiles": [],
+      "teacherLinks": [],
+      "studentFiles": [],
+      "correctedFiles": []
+    }
   ]
 }
 ```
+
+Related actions (all under `/rest/w1/students/{studentId}/homeworks`):
+
+| Method | Path |
+|---|---|
+| GET | `/downloadTeacherFile/{a}/{b}/{c}` |
+| GET | `/downloadStudentFile/{a}/{b}/{c}` |
+| POST | `/insertStudentMsg/{a}/{b}` |
+| POST | `/uploadStudentFile/{a}/{b}` |
+| POST | `/removeStudentFile/{a}/{b}/{c}` |
+| POST | `/setTeacherMsgStatus/{a}/{b}` |
 
 ---
 
@@ -580,9 +890,10 @@ GET /rest/w1/students/{studentId}/homeworks/index
 
 ```
 GET /rest/w1/students/{studentId}/notes/all/
+POST /rest/w1/students/{studentId}/notes/{type}/read/{id}
 ```
 
-Returns disciplinary notes by category.
+Returns disciplinary notes by category. The `POST` marks one as read.
 
 **Response:**
 
@@ -595,14 +906,177 @@ Returns disciplinary notes by category.
 }
 ```
 
-**Note type keys (observed):**
+**Note type keys:**
 
-| Key | Likely meaning |
+| Key | Meaning |
 |---|---|
-| `NTTE` | Teacher notes |
-| `NTCL` | Class notes |
-| `NTWN` | Warnings |
-| `NTST` | ? |
+| `NTTE` | Teacher annotation |
+| `NTCL` | Disciplinary note |
+| `NTWN` | Warning (richiamo) |
+| `NTST` | Disciplinary sanction |
+
+---
+
+### Documents
+
+```
+POST /rest/w1/students/{studentId}/documents
+POST /rest/w1/students/{studentId}/documents/check/{hash}
+POST /rest/w1/students/{studentId}/documents/read/{hash}
+```
+
+Returns school reports (scrutini) and other documents. Empty body. `read` returns the binary file.
+
+**Response:**
+
+```json
+{
+  "documents": [],
+  "schoolReports": []
+}
+```
+
+---
+
+### Talks (Colloqui)
+
+Talks live under `parents/{studentId}`.
+
+```
+GET /rest/w1/parents/{studentId}/talks/teachers
+GET /rest/w1/parents/{studentId}/talks/getframes/{teacherId}/{dateFrom}/{dateTo}
+GET /rest/w1/parents/{studentId}/talks/mytalks
+GET /rest/w1/parents/{studentId}/overalltalks/list
+```
+
+**`talks/teachers` response:**
+
+```json
+{
+  "teachers": [
+    {
+      "teacherId": 1234567,
+      "teacherName": "SURNAME NAME",
+      "subjects": [
+        { "subjectId": 210068, "description": "DISEGNO E STORIA DELL'ARTE" }
+      ],
+      "hasOpenTalks": false
+    }
+  ]
+}
+```
+
+**`talks/getframes` response** (`teacherId` is the numeric id, without the `A` prefix):
+
+```json
+{
+  "frames": [
+    {
+      "teacherId": 1234567,
+      "frameId": 13404173,
+      "frameHPos": 4,
+      "frameDate": "2026-10-08",
+      "framePlace": "a distanza",
+      "frameTimeRange": "10:55 - 11:45",
+      "frameTimeFrom": "10:55",
+      "frameTimeTo": "11:45",
+      "overallSlots": 5,
+      "busySlotMask": 31,
+      "busySlotFlags": "11111",
+      "message": "",
+      "freeSlotTimeRange": [
+        { "pos": 5, "time": "11:35 - 11:45" }
+      ]
+    }
+  ]
+}
+```
+
+> `busySlotFlags` has one character per slot (`1` busy, `0` free); `busySlotMask` is the same as a bitmask.
+
+`mytalks` returns `{"talks": []}` and `overalltalks/list` returns `{"overallTalks": []}` when empty.
+
+Booking and messaging (all under `/rest/w1/parents/{studentId}`):
+
+| Method | Path |
+|---|---|
+| GET | `/talks/teachersframes2/{dateFrom}/{dateTo}` |
+| GET | `/talks/mytalks/{dateFrom}/{dateTo}` |
+| POST | `/talks/book/{a}/{b}/{c}` |
+| POST | `/talks/delete/{a}` |
+| POST | `/talks/mymessage/{a}` |
+| POST | `/talks/teachermessage/{a}` |
+| GET | `/overalltalks/getframes/{a}/{b}` |
+| POST | `/overalltalks/book/{a}/{b}/{c}/{d}` |
+| POST | `/overalltalks/delete/{a}/{b}` |
+
+---
+
+### Payments
+
+```
+GET /rest/w1/parents/{studentId}/pagoonline/payments
+```
+
+**Response:**
+
+```json
+{
+  "items": [
+    {
+      "evtId": 39717,
+      "evtType": "POL01",
+      "schoolYear": 2025,
+      "evtDesc": "Descrizione del pagamento",
+      "evtAnn": "",
+      "payReasonId": 36,
+      "payReasonDesc": "Visite guidate e viaggi di istruzione",
+      "partecipation": false,
+      "cntHasAttach": false,
+      "payPlan": [
+        {
+          "payId": 1394540,
+          "amountDue": 27,
+          "deadlineDate": "2026-04-07",
+          "payExpired": false,
+          "amountPaid": 27,
+          "amountBonus": 0,
+          "payDate": "2026-04-06",
+          "payStatus": 8,
+          "payKey": "...",
+          "payIndex": 0,
+          "payFile": true,
+          "scuolapayEnabled": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Notes:**
+- `evtType`: `POL01` (trips / activities), `POL02` (voluntary contributions / fees)
+- The list includes payments from previous school years: filter on `schoolYear`
+- Unpaid installments have `payId: 0`, `payKey: null`, `payDate: null`
+
+**`payStatus` values:**
+
+| Value | Meaning |
+|---|---|
+| `0`-`3` | To pay |
+| `4`-`8` | Paid |
+| `9` | Refunded |
+| `10` | Cancelled |
+
+Related (all under `/rest/w1/parents/{studentId}/pagoonline`):
+
+| Method | Path |
+|---|---|
+| GET | `/downloadfile/{a}` |
+| GET | `/downloadpayment/{a}/{b}` |
+| GET | `/getprivacy` |
+| POST | `/setprivacy` |
+| POST | `/downloadfileprivacy/{a}` |
 
 ---
 
@@ -626,12 +1100,12 @@ Returns the list of adopted textbooks for the student's course.
         {
           "bookId": 181249,
           "isbnCode": "9788808564177",
-          "title": "CHIMICA: CONCETTI E MODELLI",
-          "subheading": "DALLA MATERIA ALL'ATOMO",
+          "title": "TITOLO DEL LIBRO",
+          "subheading": "SOTTOTITOLO",
           "volume": "U",
-          "author": "VALITUTTI GIUSEPPE",
-          "publisher": "ZANICHELLI EDITORE",
-          "subjectDesc": "CHIMICA 1^ E 2^ ANNO",
+          "author": "COGNOME AUTORE",
+          "publisher": "EDITORE",
+          "subjectDesc": "MATERIA",
           "price": 14.9,
           "toBuy": true,
           "newAdoption": false,
@@ -650,21 +1124,43 @@ Returns the list of adopted textbooks for the student's course.
 
 ---
 
-### Ministerial Communications
+### Other endpoints
 
-```
-GET /rest/w1/noticeboarduser/{studentId}/communications_minister
-```
+Responses not documented yet. `{a}`, `{b}`, ... are positional ids.
 
-Returns ministerial communications directed to the student.
+**Students**
 
-**Response:**
+| Method | Path |
+|---|---|
+| GET | `/students/{id}/recoveries/list/{a}` |
+| ? | `/students/{id}/newui-feedback` |
 
-```json
-{
-  "communications": []
-}
-```
+**Canteen**
+
+| Method | Path |
+|---|---|
+| GET | `/canteenuser/{id}/options/{meal}` (`meal` defaults to `pranzo`) |
+| GET | `/canteenuser/{id}/events/{a}/{b}/{c}` |
+| POST | `/canteenuser/{id}/events/{a}/{b}` |
+| GET | `/canteenuser/{id}/booking_state/{a}/{b}` |
+| GET | `/canteenuser/{id}/profile/{meal}` |
+| GET | `/canteenuser/{id}/menu/{meal}` |
+| GET | `/canteenuser/{id}/summary_meals/{meal}` |
+| GET | `/canteenuser/{id}/wallet` |
+| GET | `/canteenuser/{id}/file_menu/{a}/{b}/{c}/{d}` |
+| GET | `/canteenuser/{id}/download_file/{a}/{b}` |
+
+**Roll call**
+
+| Method | Path |
+|---|---|
+| GET | `/rollcall/{id}/options/{a}` |
+| GET | `/rollcall/{id}/events/{a}/{b}/{c}` |
+| POST | `/rollcall/{id}/events/{a}` |
+| PUT | `/rollcall/{id}/events/{a}/{b}` |
+| DELETE | `/rollcall/{id}/events/{a}/{b}` |
+| GET | `/rollcall/{id}/booking_state/{a}/{b}` |
+| GET | `/rollcall/{id}/assets/{a}` (default `SPA1`) |
 
 ---
 
@@ -674,19 +1170,22 @@ Returns ministerial communications directed to the student.
 
 | Format | Example | Used in |
 |---|---|---|
-| `YYYY-MM-DD` | `2025-10-24` | grades, absences, lessons |
-| `YYYY-MM-DDTHH:MM:SS+HH:MM` | `2026-06-03T11:57:09+02:00` | agenda, noticeboard, didactics |
-| `YYYYMMDD` | `20250901` | URL path params (agenda, lessons) |
+| `YYYY-MM-DD` | `2026-10-24` | grades, absences, lessons, homeworks, periods |
+| `YYYY-MM-DDTHH:MM:SS+HH:MM` | `2026-10-21T16:01:14+02:00` | agenda, noticeboard, didactics |
+| `YYYYMMDD` | `20260901` | URL path params (agenda, lessons, overview, absences, talks) |
 
 ### Common ID types
 
 | Field | Type | Example |
 |---|---|---|
-| Student numeric ID | integer | `13000000` |
-| Student identity code | string | `S000000` |
-| Teacher ID | string | `A0000000` |
+| Student numeric ID | integer (string in `whoami`) | `12345678` |
+| Student identity code | string | `S12345678C` |
+| Teacher ID in subjects / didactics | string with `A` prefix | `A1234567` |
+| Teacher ID in homeworks / talks | integer | `1234567` |
 | Subject ID | integer | `210068` |
 | Event ID | integer | `630205` |
+
+> Empty collections that are normally objects (e.g. `periodAverages`) come back as `[]`, so check `Array.isArray` before reading keys.
 
 ---
 
