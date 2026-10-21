@@ -7,7 +7,7 @@ Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) RES
 > Use at your own risk and in compliance with applicable terms of service.
 
 > [!IMPORTANT]
-> if you're planning to use the API on cdn or similar,
+> if you're planning to use the API on a cdn or similar,
 > you must set up a cloudflare worker that acts as a proxy.
 > see how to setup [here](./worker/README.md).
 
