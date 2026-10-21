@@ -1018,7 +1018,7 @@ Booking and messaging (all under `/rest/w1/parents/{studentId}`):
 
 ### Payments
 > [!note]
-> always use the official spaggiari implementation to make payments
+> always use the official spaggiari register to make payments
 
 
 ```
@@ -1191,18 +1191,6 @@ Responses not documented yet. `{a}`, `{b}`, ... are positional ids.
 | Teacher ID in homeworks / talks | integer | `1234567` |
 | Subject ID | integer | `210068` |
 | Event ID | integer | `630205` |
-
-> Empty collections that are normally objects (e.g. `periodAverages`) come back as `[]`, so check `Array.isArray` before reading keys.
-
-### Quirks to handle
-
-| Quirk | Where |
-|---|---|
-| Empty collections that are normally objects come back as `[]` | `periodAverages`, `generalAverages` |
-| `decimalValue: null` for judgments (`"ds"`, `"o"`) | grades, dashboard `latestGrades` |
-| `subjectCode: null` | lessons, averages |
-| Teacher id with `A` prefix (string) vs numeric | subjects / didactics vs homeworks / talks |
-| Student id is a string in `whoami`, an integer elsewhere | whoami |
 
 ---
 
