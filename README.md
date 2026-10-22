@@ -664,6 +664,14 @@ GET /rest/w1/students/{studentId}/lessons/20260901/20270630
 
 ### Bacheca
 
+> [!NOTE]
+> Alcune scuole sembrano usare una bacheca diversa: in quel caso
+> `/noticeboard` può restituire `items: []` mentre il sito mostra comunque
+> degli avvisi, che vanno cercati in
+> [`noticeboarduser/{studentId}/communications`](#comunicazioni).
+> Il caso opposto è altrettanto comune: in account con `old_bacheca`
+> `communications` è sempre vuoto e le circolari stanno in `/noticeboard`.
+
 #### Elenco degli avvisi
 
 ```
@@ -752,7 +760,7 @@ Risponde `302` con una `Location` verso un URL firmato temporaneo su `cdndoc.spa
 
 ---
 
-### Comunicazioni
+#### Comunicazioni
 
 ```
 GET /rest/w1/noticeboarduser/{studentId}/communications
@@ -761,25 +769,49 @@ GET /rest/w1/noticeboarduser/{studentId}/communications_minister
 
 Restituisce le comunicazioni dirette allo studente, comprese quelle ministeriali.
 
-**Risposta:**
+> [!NOTE]
+> Su alcune scuole la risposta è sempre `{"communications": []}`, anche
+> se `/noticeboard` contiene avvisi.
+
+**Risposta** (campi selezionati, dati sintetici):
 
 ```json
 {
-  "communications": []
+  "communications": [
+    {
+      "id": 1001,
+      "titolo": "Avviso: Orario definitivo",
+      "testo": "<p>Consultare l'allegato.</p>",
+      "tipologia_desc": "News",
+      "pubblicazione": "2026-10-09 16:04:00",
+      "scadenza": "2027-01-15 13:49:00",
+      "anno_scol": 2026,
+      "n_allegati": 1,
+      "attachment": [
+        { "id": 2001, "descrizione": "Orario definitivo.pdf", "extension": "" }
+      ]
+    }
+  ]
 }
 ```
 
-Azioni correlate (tutte sotto `/rest/w1/noticeboarduser/{studentId}`):
+- `testo` può contenere HTML ed entità HTML.
+- `attachment` ha nome singolare ma è un **array**.
+- L'elenco può includere avvisi scaduti (`scadenza`) e record con `anno_scol` diversi.
 
-| Metodo | Percorso |
+#### Scaricare un allegato
+
+```
+GET /rest/w1/noticeboarduser/{studentId}/attachments/{schoolYear}/{communicationId}/{attachmentId}
+```
+
+| Parametro | Origine |
 |---|---|
-| GET | `/attachments/{a}/{b}/{c}` |
-| POST | `/response/{a}/{b}` |
-| POST | `/file_response/{a}/{b}` |
-| DELETE | `/file_response/{a}/{b}/{c}` |
-| GET | `/signature/{a}/{b}/{c}` |
-| POST | `/signature/{a}/{b}/{c}/{d}` |
-| POST | `/communication/{a}/{b}/signer` |
+| `schoolYear` | `anno_scol` del record (non l'anno corrente) |
+| `communicationId` | `id` della comunicazione |
+| `attachmentId` | `attachment[].id` (non l'indice nell'array) |
+
+La risposta è il file binario, non JSON; il nome file è in `attachment[].descrizione`.
 
 ---
 
