@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ClasseViva Web API
-  version: 1.0.0
+  version: 1.0.1
   description: 'Unofficial, community-maintained description of the ClasseViva (Spaggiari) REST API used by the web client
     at `web.spaggiari.eu`.
 
@@ -1033,6 +1033,43 @@ paths:
       responses:
         '200':
           description: Response not documented yet
+        '401':
+          description: Session no longer valid
+  /students/{studentId}/homeworks/setHomeworkMarkedDone/NEWDC/{evtId}:
+    post:
+      tags:
+      - Homeworks
+      operationId: setHomeworkMarkedDone
+      summary: Mark a homework as done (or not done)
+      description: '`NEWDC` is the homework `evtCode`, sent as a literal in the path. `{evtId}` is the `evtId` of the homework
+        from `homeworks/index`. Returns the updated homework.'
+      parameters:
+      - $ref: '#/components/parameters/studentId'
+      - name: evtId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Homework `evtId`
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                homeworkMarkedDone:
+                  type: boolean
+                  description: '`true` to mark as done, `false` to undo'
+              required:
+              - homeworkMarkedDone
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Homework'
         '401':
           description: Session no longer valid
   /students/{studentId}/notes/all/:
