@@ -11,6 +11,8 @@ Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) RES
 > you must set up a cloudflare worker that acts as a proxy.
 > see how to setup [here](./worker/README.md).
 
+An OpenAPI 3.0 description is available in [`openapi.yaml`](./openapi.yaml).
+
 ---
 
 ## Table of Contents
@@ -54,7 +56,7 @@ Unofficial, community-maintained documentation of the ClasseViva (Spaggiari) RES
 | Document CDN | `https://cdndoc.spaggiari.eu/` |
 | Auth | `https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php` |
 
-`{studentId}` in the paths below is the numeric `id` returned by `whoami` (usally the codes after "S"), not the `S12345678C` ident code.
+`{studentId}` in the paths below is the numeric `id` returned by `whoami` (usually the number after "S"), not the `S12345678C` ident code.
 
 ---
 
@@ -857,7 +859,7 @@ GET /rest/w1/students/{studentId}/homeworks/index
       "teacherName": "SURNAME NAME",
       "homeworkDesc": "Testo del compito",
       "homeworkDone": false,
-      "homeworkMarkedDone": true,
+      "homeworkMarkedDone": false,
       "assignmentDate": "2026-09-10",
       "assignmentTime": null,
       "expiryDate": "2026-09-14",
@@ -887,6 +889,46 @@ Related actions (all under `/rest/w1/students/{studentId}/homeworks`):
 | POST | `/uploadStudentFile/{a}/{b}` |
 | POST | `/removeStudentFile/{a}/{b}/{c}` |
 | POST | `/setTeacherMsgStatus/{a}/{b}` |
+
+#### Mark homework as done
+
+```
+POST https://web.spaggiari.eu/rest/w1/students/{studentId}/homeworks/setHomeworkMarkedDone/NEWDC/{evtId}
+```
+
+**Body:**
+
+```
+homeworkMarkedDone: true // or false
+```
+
+**Response:**
+
+```json
+{
+  "evtId": 125021,
+  "evtCode": "NEWDC",
+  "teacherId": 1234567,
+  "teacherName": "SURNAME NAME",
+  "homeworkDesc": "Testo del compito",
+  "homeworkDone": false,
+  "homeworkMarkedDone": true,
+  "assignmentDate": "2026-09-10",
+  "assignmentTime": null,
+  "expiryDate": "2026-09-14",
+  "expiryTime": null,
+  "studentAttachmentsAllowed": false,
+  "subjectId": 210064,
+  "subjectDesc": "LINGUA E LETTERATURA ITALIANA",
+  "lastStudentMsg": null,
+  "lastTeacherMsg": null,
+  "newMessages": true,
+  "teacherFiles": [],
+  "teacherLinks": [],
+  "studentFiles": [],
+  "correctedFiles": []
+}
+```
 
 ---
 
@@ -1017,9 +1059,6 @@ Booking and messaging (all under `/rest/w1/parents/{studentId}`):
 ---
 
 ### Payments
-> [!note]
-> always use the official spaggiari register to make payments
-
 
 ```
 GET /rest/w1/parents/{studentId}/pagoonline/payments
@@ -1191,6 +1230,18 @@ Responses not documented yet. `{a}`, `{b}`, ... are positional ids.
 | Teacher ID in homeworks / talks | integer | `1234567` |
 | Subject ID | integer | `210068` |
 | Event ID | integer | `630205` |
+
+> Empty collections that are normally objects (e.g. `periodAverages`) arrive as `[]`, so check `Array.isArray` before reading keys.
+
+### Quirks to handle
+
+| Quirk | Where |
+|---|---|
+| Empty collections that are normally objects arrive as `[]` | `periodAverages`, `generalAverages` |
+| `decimalValue: null` for judgments (`"ds"`, `"o"`) | grades, dashboard `latestGrades` |
+| `subjectCode: null` | lessons, averages |
+| Teacher ID with `A` prefix (string) or numeric | subjects / didactics vs homeworks / talks |
+| Student id is a string in `whoami`, an integer elsewhere | whoami |
 
 ---
 

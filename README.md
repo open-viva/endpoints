@@ -859,7 +859,7 @@ GET /rest/w1/students/{studentId}/homeworks/index
       "teacherName": "SURNAME NAME",
       "homeworkDesc": "Testo del compito",
       "homeworkDone": false,
-      "homeworkMarkedDone": true,
+      "homeworkMarkedDone": false,
       "assignmentDate": "2026-09-10",
       "assignmentTime": null,
       "expiryDate": "2026-09-14",
@@ -889,6 +889,46 @@ Azioni correlate (tutte sotto `/rest/w1/students/{studentId}/homeworks`):
 | POST | `/uploadStudentFile/{a}/{b}` |
 | POST | `/removeStudentFile/{a}/{b}/{c}` |
 | POST | `/setTeacherMsgStatus/{a}/{b}` |
+
+#### Segna compito come fatto
+
+```
+POST https://web.spaggiari.eu/rest/w1/students/{studentId}/homeworks/setHomeworkMarkedDone/NEWDC/{evtId}
+```
+
+**Body:**
+
+```
+homeworkMarkedDone: true // or false
+```
+
+**Risposta**:
+
+```json
+{
+  "evtId": 125021,
+  "evtCode": "NEWDC",
+  "teacherId": 1234567,
+  "teacherName": "SURNAME NAME",
+  "homeworkDesc": "Testo del compito",
+  "homeworkDone": false,
+  "homeworkMarkedDone": true,
+  "assignmentDate": "2026-09-10",
+  "assignmentTime": null,
+  "expiryDate": "2026-09-14",
+  "expiryTime": null,
+  "studentAttachmentsAllowed": false,
+  "subjectId": 210064,
+  "subjectDesc": "LINGUA E LETTERATURA ITALIANA",
+  "lastStudentMsg": null,
+  "lastTeacherMsg": null,
+  "newMessages": true,
+  "teacherFiles": [],
+  "teacherLinks": [],
+  "studentFiles": [],
+  "correctedFiles": []
+}
+```
 
 ---
 
