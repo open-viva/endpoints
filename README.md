@@ -904,7 +904,7 @@ homeworkMarkedDone: true // or false
 
 **Risposta**:
 
-```
+```json
 {
   "evtId": 125021,
   "evtCode": "NEWDC",
