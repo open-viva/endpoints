@@ -1183,30 +1183,30 @@ Risposte non ancora documentate. `{a}`, `{b}`, ... sono id posizionali.
 
 **Mensa**
 
-| Metodo | Percorso |
+| Metodo | Percorso | 
 |---|---|
-| GET | `/canteenuser/{id}/options/{meal}` (`meal` vale `pranzo` di default) |
-| GET | `/canteenuser/{id}/events/{a}/{b}/{c}` |
-| POST | `/canteenuser/{id}/events/{a}/{b}` |
-| GET | `/canteenuser/{id}/booking_state/{a}/{b}` |
-| GET | `/canteenuser/{id}/profile/{meal}` |
-| GET | `/canteenuser/{id}/menu/{meal}` |
-| GET | `/canteenuser/{id}/summary_meals/{meal}` |
-| GET | `/canteenuser/{id}/wallet` |
-| GET | `/canteenuser/{id}/file_menu/{a}/{b}/{c}/{d}` |
-| GET | `/canteenuser/{id}/download_file/{a}/{b}` |
+| GET | `/canteenuser/{userId}/options/{service}` |
+| GET | `/canteenuser/{userId}/events/{service}/{dateFrom}/{dateTo}` |
+| POST | `/canteenuser/{userId}/events/{service}/{date}` | 
+| GET | `/canteenuser/{userId}/booking_state/{date}/{service?}` | 
+| GET | `/canteenuser/{userId}/profile/{service}` |
+| GET | `/canteenuser/{userId}/menu/{service}` | 
+| GET | `/canteenuser/{userId}/summary_meals/{service}` |
+| GET | `/canteenuser/{userId}/wallet` | 
+| GET | `/canteenuser/{userId}/file_menu/{a}/{b}/{c}/{d}` | 
+| GET | `/canteenuser/{userId}/download_file/{fileId}/{param}` | 
 
 **Appello**
 
 | Metodo | Percorso |
 |---|---|
-| GET | `/rollcall/{id}/options/{a}` |
-| GET | `/rollcall/{id}/events/{a}/{b}/{c}` |
-| POST | `/rollcall/{id}/events/{a}` |
-| PUT | `/rollcall/{id}/events/{a}/{b}` |
-| DELETE | `/rollcall/{id}/events/{a}/{b}` |
-| GET | `/rollcall/{id}/booking_state/{a}/{b}` |
-| GET | `/rollcall/{id}/assets/{a}` (default `SPA1`) |
+| GET | `/rollcall/{userId}/options/{service}` | 
+| GET | `/rollcall/{userId}/events/{service}/{dateFrom}/{dateTo}` | 
+| POST | `/rollcall/{userId}/events/{service}` |
+| PUT | `/rollcall/{userId}/events/{service}/{eventId}` | 
+| DELETE | `/rollcall/{userId}/events/{service}/{eventId}` | 
+| GET | `/rollcall/{userId}/booking_state/{date}/{service?}` | 
+| GET | `/rollcall/{userId}/assets/{assetCode}` | 
 
 ---
 
