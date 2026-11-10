@@ -1,17 +1,14 @@
 # ClasseViva Web API Docs
+
 Documentazione non ufficiale, mantenuta dalla community, delle API REST di ClasseViva (Spaggiari) usate dal client web su `web.spaggiari.eu`.
 
 > [!WARNING]
-> Questa documentazione è il risultato di un'analisi indipendente.
-> Non è affiliata, approvata né supportata da Spaggiari.
-> Usala a tuo rischio e nel rispetto dei termini di servizio applicabili.
+> Questa documentazione è il risultato di un'analisi indipendente. Non è affiliata, approvata né supportata da Spaggiari. Usala a tuo rischio e nel rispetto dei termini di servizio applicabili.
 
 > [!IMPORTANT]
-> se pensi di usare le API da una cdn o simili,
-> devi configurare un cloudflare worker che faccia da proxy.
-> vedi come configurarlo [qui](./worker/README.md).
+> se pensi di usare le API da una cdn o simili, devi configurare un cloudflare worker che faccia da proxy. vedi come configurarlo [qui](https://github.com/open-viva/endpoints/blob/main/worker/README.md).
 
-Una descrizione OpenAPI 3.0 è disponibile in [`openapi.yaml`](./openapi.yaml).
+Una descrizione OpenAPI 3.0 è disponibile in [`openapi.yaml`](https://github.com/open-viva/endpoints/blob/main/openapi.yaml).
 
 ---
 
@@ -38,9 +35,13 @@ Una descrizione OpenAPI 3.0 è disponibile in [`openapi.yaml`](./openapi.yaml).
   - [Compiti](#compiti)
   - [Note](#note)
   - [Documenti](#documenti)
+  - [Recuperi](#recuperi)
   - [Colloqui](#colloqui)
   - [Pagamenti](#pagamenti)
   - [Libri di testo](#libri-di-testo)
+  - [Feedback](#feedback)
+  - [Mensa](#mensa)
+  - [Appello (Attività extra)](#appello-attività-extra)
   - [Altri endpoint](#altri-endpoint)
 - [Riferimento tipi di dato](#riferimento-tipi-di-dato)
   - [Particolarità da gestire](#particolarità-da-gestire)
@@ -50,13 +51,15 @@ Una descrizione OpenAPI 3.0 è disponibile in [`openapi.yaml`](./openapi.yaml).
 
 ## URL di base
 
-| Servizio | URL di base |
-|---|---|
-| API REST | `https://web.spaggiari.eu/rest/w1/` |
-| CDN documenti | `https://cdndoc.spaggiari.eu/` |
+| Servizio       | URL di base                                                 |
+| -------------- | ----------------------------------------------------------- |
+| API REST       | `https://web.spaggiari.eu/rest/w1/`                         |
+| CDN documenti  | `https://cdndoc.spaggiari.eu/`                              |
 | Autenticazione | `https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php` |
 
 `{studentId}` nei percorsi qui sotto è l'`id` numerico restituito da `whoami` (di solito il numero dopo la "S"), non il codice identificativo `S12345678C`.
+
+> Le sezioni contrassegnate **(dal sorgente del client)** sono state ricostruite dai bundle JavaScript del client web, non da risposte catturate: percorsi, parametri e body delle richieste sono esatti, mentre le risposte elencano i campi che il client legge e possono essere incomplete.
 
 ---
 
@@ -70,13 +73,13 @@ POST https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php?a=aLoginPwd
 
 **Campi del form** (application/x-www-form-urlencoded):
 
-| Campo | Descrizione |
-|---|---|
-| `uid` | Nome utente |
-| `pwd` | Password |
-| `cid` | Codice scuola (può essere vuoto) |
-| `pin` | PIN (se impostato, altrimenti vuoto) |
-| `target` | Può essere vuoto |
+| Campo    | Descrizione                          |
+| -------- | ------------------------------------ |
+| `uid`    | Nome utente                          |
+| `pwd`    | Password                             |
+| `cid`    | Codice scuola (può essere vuoto)     |
+| `pin`    | PIN (se impostato, altrimenti vuoto) |
+| `target` | Può essere vuoto                     |
 
 Esempio di body:
 
@@ -86,7 +89,7 @@ cid=&uid=USERNAME&pwd=PASSWORD&pin=&target=
 
 **Risposta:**
 
-```json
+```
 {
   "time": "2026-10-21T20:05:06+02:00",
   "data": {
@@ -110,25 +113,27 @@ cid=&uid=USERNAME&pwd=PASSWORD&pin=&target=
 ```
 
 **Note:**
+
 - Il successo è `data.auth.loggedIn === true`. Non fare affidamento su `Set-Cookie` per rilevarlo: se la richiesta porta già un `PHPSESSID`, il server può non inviarne uno nuovo.
 - `verified: true` con `loggedIn: false` significa che corrispondono più account e bisogna sceglierne uno: `POST AuthApi4.php?a=aLoginSam` con `uid=<account scelto>`.
+- Il client web chiama `POST AuthApi4.php?a=aLoginSamPrep` (stesso body form `uid=<account scelto>`) prima di `aLoginSam`; risponde `{ "status": true, "error": ... }` **(dal sorgente del client)**.
 - `actionRequested: "changePasswordDialog"` significa che la password è scaduta.
 - Un 401 su qualsiasi chiamata REST significa che la sessione non è più valida.
 
 Se il login riesce, il server imposta questi cookie, che vanno inviati in tutte le richieste successive:
 
-| Cookie | Descrizione |
-|---|---|
-| `PHPSESSID` | Token di sessione |
-| `webidentity` | Identificativo dell'account (`S{studentId}C`) |
-| `webrole` | Identificativo del ruolo (es. `gen`) |
-| `i18n_redirected` | Lingua (`it`) |
+| Cookie            | Descrizione                                   |
+| ----------------- | --------------------------------------------- |
+| `PHPSESSID`       | Token di sessione                             |
+| `webidentity`     | Identificativo dell'account (`S{studentId}C`) |
+| `webrole`         | Identificativo del ruolo (es. `gen`)          |
+| `i18n_redirected` | Lingua (`it`)                                 |
 
 ---
 
 ## Endpoint
 
-Tutti gli endpoint usano **GET** salvo diversa indicazione e richiedono i cookie di sessione descritti sopra. Le date nei percorsi sono `YYYYMMDD`.
+Tutti gli endpoint usano **GET** salvo diversa indicazione e richiedono i cookie di sessione descritti sopra. Le date nei percorsi sono `YYYYMMDD` (eccezione: [Mensa](#mensa) e [Appello](#appello-attività-extra), vedi le relative sezioni).
 
 ### Info utente
 
@@ -138,7 +143,7 @@ GET /rest/w1/misc/whoami
 
 **Risposta:**
 
-```json
+```
 {
   "id": "12345678",
   "account_type": "S",
@@ -158,6 +163,7 @@ GET /rest/w1/misc/whoami
 ```
 
 > `id` è l'ID numerico dello studente usato in tutti gli endpoint `/students/{id}/...`. `anno_scol` è solo l'anno di inizio (`"2026"` = 2026/27).
+> `account_type`: `S` studente, `A` admin (il client web rimanda all'area admin), qualsiasi altro valore è un account genitore **(dal sorgente del client)**.
 
 ---
 
@@ -171,7 +177,7 @@ Restituisce quali sezioni la scuola ha abilitato, più le opzioni di interfaccia
 
 **Risposta:**
 
-```json
+```
 {
   "functions": {
     "dashboard": { "title": "Dashboard", "desc": "Dashboard", "type": "function", "url": null, "options": [], "readonly": false },
@@ -200,7 +206,7 @@ GET /rest/w1/students/{studentId}/periods
 
 **Risposta:**
 
-```json
+```
 {
   "periods": [
     { "periodCode": "Q1", "periodPos": 1, "periodDesc": "1° PERIODO", "periodLabel": "1° PERIODO", "isFinal": false, "dateStart": "2026-09-01", "dateEnd": "2026-12-04", "miurDivisionCode": null },
@@ -221,7 +227,7 @@ GET /rest/w1/students/{studentId}/card
 
 **Risposta:**
 
-```json
+```
 {
   "card": {
     "ident": "S12345678C",
@@ -256,7 +262,7 @@ Restituisce gli account collegati al login.
 
 **Risposta:**
 
-```json
+```
 {
   "currentIdent": "S12345678C",
   "portfolio": {
@@ -298,7 +304,21 @@ Restituisce gli account collegati al login.
 }
 ```
 
-Gestione account: `POST /rest/w1/xauth/connect`, `POST /rest/w1/xauth/disconnect`, `POST /rest/w1/xauth/changepassword`.
+Gestione account **(dal sorgente del client)**:
+
+```
+POST /rest/w1/xauth/connect
+POST /rest/w1/xauth/disconnect
+POST /rest/w1/xauth/changepassword
+```
+
+Body (JSON) di `changepassword`:
+
+```
+{ "oldPass": "...", "newPass": "...", "newPassCpy": "..." }
+```
+
+> L'interfaccia web impone: almeno 10 caratteri, con una maiuscola, una minuscola, una cifra e un simbolo; `newPass` deve coincidere con `newPassCpy`.
 
 ---
 
@@ -312,7 +332,7 @@ Tutto ciò che serve alla dashboard in una sola chiamata.
 
 **Risposta:**
 
-```json
+```
 {
   "subjectAverages": {},
   "generalAverages": {},
@@ -338,7 +358,7 @@ Restituisce lezioni, agenda, compiti e note per l'intervallo dato (`YYYYMMDD`, d
 
 **Risposta:**
 
-```json
+```
 {
   "virtualClassesAgenda": [],
   "lessons": [
@@ -366,7 +386,7 @@ GET /rest/w1/students/{studentId}/subjects
 
 **Risposta:**
 
-```json
+```
 {
   "subjects": [
     {
@@ -395,7 +415,7 @@ Restituisce tutti i voti dell'anno scolastico corrente.
 
 **Risposta:**
 
-```json
+```
 {
   "grades": [
     {
@@ -427,6 +447,7 @@ Restituisce tutti i voti dell'anno scolastico corrente.
 ```
 
 **Note:**
+
 - Il suffisso `26` non è l'anno scolastico: è lo stesso per il 2025/26 e il 2026/27.
 - Formato di `evtPosition`: `S{periodPos}_{componentPos}_{index}`
 - `color`: `"green"` (≥6), `"yellow"` (~5-6), `"red"` (<5) - in modo approssimativo
@@ -436,6 +457,7 @@ Restituisce tutti i voti dell'anno scolastico corrente.
 - I giudizi non numerici (es. `displayValue: "ds"` oppure `"o"`, visti in Religione) hanno **`decimalValue: null`** e `noAverage: true`: usa sempre `displayValue` come ripiego
 - `weightFactor` è una percentuale (`100` = peso 1)
 - I voti in `/dashboard` (`latestGrades`) includono anche campi di competenza vuoti (`skillId`, `skillDesc`, `skillCode`, ...)
+- I voti per competenze hanno un array `skills` con `displayValue`, `skillDesc`, `skillValueShortDesc`, `skillValueDesc` e `note` **(dal sorgente del client)**
 
 ---
 
@@ -450,7 +472,7 @@ GET /rest/w1/students/{studentId}/avg/{subjectId}
 
 **Risposta:**
 
-```json
+```
 {
   "subjectAverages": {
     "407840": {
@@ -477,6 +499,7 @@ GET /rest/w1/students/{studentId}/avg/{subjectId}
 ```
 
 **Note:**
+
 - `subjectAverages` ha come chiave l'id della materia.
 - `periodAverages` e `generalAverages` sono oggetti con chiave `S{periodPos}`, oppure un array vuoto `[]` quando non ci sono voti.
 - `average` è `null` e `color` è `"orange"` quando una materia non ha voti.
@@ -494,7 +517,7 @@ Restituisce tutti gli eventi di assenza e ritardo.
 
 **Risposta:**
 
-```json
+```
 {
   "events": [
     {
@@ -515,24 +538,24 @@ Restituisce tutti gli eventi di assenza e ritardo.
 
 **Codici evento:**
 
-| Codice | Descrizione |
-|---|---|
-| `ABA0` | Assenza giornaliera |
-| `ABR0` | Ingresso in ritardo |
-| `ABR1` | Ingresso in ritardo breve |
+| Codice | Descrizione                                             |
+| ------ | ------------------------------------------------------- |
+| `ABA0` | Assenza giornaliera                                     |
+| `ABR0` | Ingresso in ritardo                                     |
+| `ABR1` | Ingresso in ritardo breve                               |
 | `ABU0` | Uscita anticipata (vedi `evtHPos` per l'ora di lezione) |
 
 **Stato della giustificazione:** se `isJustified` è true l'evento è giustificato; altrimenti `webJustifStatus: 1` significa che una giustificazione è in attesa di approvazione; altrimenti è ancora da giustificare.
 
 **Codici dei motivi di giustificazione:**
 
-| Codice | Descrizione |
-|---|---|
-| `A` | Motivi di salute |
-| `AC` | Motivi di salute + certificato medico |
-| `B` | Motivi di famiglia |
-| `C` | Altri motivi |
-| `D` | Problemi di trasporto / traffico |
+| Codice | Descrizione                           |
+| ------ | ------------------------------------- |
+| `A`    | Motivi di salute                      |
+| `AC`   | Motivi di salute + certificato medico |
+| `B`    | Motivi di famiglia                    |
+| `C`    | Altri motivi                          |
+| `D`    | Problemi di trasporto / traffico      |
 
 #### Giustificazione online
 
@@ -540,12 +563,13 @@ Restituisce tutti gli eventi di assenza e ritardo.
 GET    /rest/w1/students/{studentId}/absences/librettowebconf
 GET    /rest/w1/students/{studentId}/absences/librettoweb
 POST   /rest/w1/students/{studentId}/absences/librettoweb
+PUT    /rest/w1/students/{studentId}/absences/librettoweb/{id}
 DELETE /rest/w1/students/{studentId}/absences/librettoweb/{id}
 ```
 
 Risposta di `librettowebconf`:
 
-```json
+```
 {
   "enableJustA": false,
   "enableJustR": false,
@@ -560,6 +584,35 @@ Risposta di `librettowebconf`:
 }
 ```
 
+Altri campi che il client web legge da questo oggetto (può essere dentro `params[0]`) **(dal sorgente del client)**: `enableJustM` (interruttore generale), `autoApproveA/R/U` (nessuna approvazione del docente), `numDaysEditA/R/U` (giorni in cui la richiesta è ancora modificabile), `maxDaysFuture` (di quanti giorni in avanti si può giustificare), `maxPeriodDays` (durata massima di un'assenza su più giorni, default 15). Gli elementi di `otherInfo` sono `{ "id": 3, "desc": "..." }`.
+
+**Body di `POST` / `PUT`** (JSON) **(dal sorgente del client)**:
+
+```
+{
+  "evtType": 0,
+  "causalCode": "A",
+  "dateStart": "2026-11-09",
+  "dateEnd": "2026-11-10",
+  "reason": "Testo libero",
+  "otherInfo": [{ "id": 3 }]
+}
+```
+
+| Campo        | Descrizione                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `evtType`    | `0` assenza, `1` ritardo, `2` uscita anticipata                                                                |
+| `causalCode` | `causals[].code` di `librettowebconf`                                                                          |
+| `dateStart`  | `YYYY-MM-DD`                                                                                                   |
+| `dateEnd`    | `YYYY-MM-DD`; per `evtType` 1 e 2 coincide con `dateStart` (intervalli su più giorni solo per le assenze)      |
+| `reason`     | Testo libero, obbligatorio                                                                                     |
+| `otherInfo`  | Array di `{ "id": n }` scelti da `librettowebconf.otherInfo`                                                   |
+| `time`       | `HH:MM`, solo per `evtType` 1 e 2 (ora di ingresso / uscita)                                                   |
+| `pickup`     | Nome di chi ritira lo studente, solo per `evtType` 2                                                           |
+| `hPos`       | Ora di lezione, solo in `PUT` e se maggiore di 0                                                               |
+
+`GET librettoweb` restituisce un array oppure `{ "events": [] }` (il client accetta entrambi). Gli elementi hanno i campi della richiesta più `evtId`, `evtDate`, `evtTime`, `isEditable`, `isDeletable`, `isRejected`, `rejectReason`, `rejectData`, `rejectAuthor`, `dinsert` (data di inserimento) e `authorType` (`G` genitore 1, `X` genitore 2, `S` studente).
+
 ---
 
 ### Agenda
@@ -572,13 +625,14 @@ GET /rest/w1/students/{studentId}/agendav2/{evtCode}/{dateFrom}/{dateTo}
 Restituisce gli eventi dell'agenda (compiti assegnati, verifiche, promemoria) nell'intervallo di date dato. La seconda forma filtra per codice evento.
 
 **Esempio:**
+
 ```
 GET /rest/w1/students/{studentId}/agendav2/all/20260901/20261221
 ```
 
 **Risposta:**
 
-```json
+```
 {
   "agenda": [
     {
@@ -600,11 +654,11 @@ GET /rest/w1/students/{studentId}/agendav2/all/20260901/20261221
 
 **Codici evento:**
 
-| Codice | Descrizione |
-|---|---|
-| `AGNT` | Annotazione del docente |
+| Codice | Descrizione                                                           |
+| ------ | --------------------------------------------------------------------- |
+| `AGNT` | Annotazione del docente                                               |
 | `AGHW` | Compito assegnato (`homeworkId` rimanda a [Compiti](#compiti)) |
-| `AGCR` | Prenotazione aula |
+| `AGCR` | Prenotazione aula                                                     |
 
 ---
 
@@ -620,13 +674,14 @@ GET /rest/w1/students/{studentId}/lessons/subject/{subjectId}/{dateFrom}/{dateTo
 Restituisce le voci del registro delle lezioni.
 
 **Esempio:**
+
 ```
 GET /rest/w1/students/{studentId}/lessons/20260901/20270630
 ```
 
 **Risposta:**
 
-```json
+```
 {
   "lessons": [
     {
@@ -649,14 +704,14 @@ GET /rest/w1/students/{studentId}/lessons/20260901/20270630
 
 **Codici evento:**
 
-| Codice | Descrizione |
-|---|---|
-| `LSF0` | Lezione normale |
+| Codice | Descrizione                           |
+| ------ | ------------------------------------- |
+| `LSF0` | Lezione normale                       |
 | `LSC0` | Compresenza (es. docente di sostegno) |
 
 **`lessonType`** è testo libero impostato dal docente. Visti: `Lezione`, `Compresenza`, `Prova pratica`, `Orientamento`, `Interrogazione`, `Compito in classe`, `Verifica scritta`, `Verifiche orali`, `Assemblea di istituto`, `Supplenza`.
 
-**`evtHPos`**: numero dell'ora di lezione nella giornata (1 = prima ora, ecc.). Una lezione di due ore compare come due voci.
+**`evtHPos`** : numero dell'ora di lezione nella giornata (1 = prima ora, ecc.). Una lezione di due ore compare come due voci.
 
 > `subjectCode` può essere `null` (visto per materie come Educazione civica): usa `subjectId` come chiave.
 
@@ -674,7 +729,7 @@ Restituisce l'elenco delle circolari e degli altri elementi della bacheca.
 
 **Risposta:**
 
-```json
+```
 {
   "items": [
     {
@@ -719,15 +774,27 @@ POST /rest/w1/students/{studentId}/noticeboard/readmulti/{evtCode}/{pubId}/101
 ```
 
 **Parametri del percorso presi dalla risposta dell'elenco:**
+
 - `evtCode`: es. `CF`
 - `pubId`: es. `40000001`
 - `101`: costante usata sempre dal client web, significato sconosciuto
 
 Body vuoto con `Content-Type: application/x-www-form-urlencoded`. Quando si risponde a un avviso (`needReply` / `needJoin`) il body è JSON.
 
+**Body delle risposte** (JSON, una azione per chiamata, **dal sorgente del client**):
+
+| Azione             | Body                                                          |
+| ------------------ | ------------------------------------------------------------- |
+| Adesione (`needJoin`)  | `{ "join": true }`                                        |
+| Firma (`needSign`)  | `{ "sign": true }` per accettare, `{ "sign": false }` per rifiutare |
+| Testo (`needReply`) | `{ "text": "..." }`                                          |
+| File (`needFile`)  | `{ "file": "<base64>", "filename": "nome.ext" }` (l'interfaccia web limita i file a 2 MB) |
+
+Dopo ogni azione il client ripete la chiamata senza body per ricaricare il dettaglio.
+
 **Risposta:**
 
-```json
+```
 {
   "item": {
     "title": "136 - CIRC. N. 110 - Titolo della circolare",
@@ -763,23 +830,39 @@ Restituisce le comunicazioni dirette allo studente, comprese quelle ministeriali
 
 **Risposta:**
 
-```json
+```
 {
   "communications": []
 }
 ```
 
+**Campi di una comunicazione** (letti dal client web, tipi non verificati) **(dal sorgente del client)**:
+
+| Campo                                                                          | Descrizione                                                                |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `id`, `anno_scol`                                                              | Id della comunicazione e anno scolastico, usati come `{annoScol}` / `{communicationId}` qui sotto |
+| `pubblicazione`, `scadenza`                                                    | Data di pubblicazione e di scadenza                                        |
+| `tipologia_desc`, `tipologia_colore`                                           | Categoria e relativo colore                                                |
+| `autore_nome`, `autore_cognome`                                                | Autore                                                                     |
+| `risposta_conferma`, `risposta_adesione`, `risposta_testo`, `risposta_file`    | `1` quando il tipo di risposta è richiesto (accetto / adesione / testo / file) |
+| `editable_response`                                                            | `0` quando la risposta non è più modificabile                              |
+| `num_file_risposta`                                                            | Numero massimo di file di risposta                                         |
+| `attachment[]`                                                                 | `{ id, descrizione, firma: { tipo_firma, da_firmare } }`; `tipo_firma` è `pv` (presa visione) o `fg` (firma grafica), `da_firmare: 1` significa che serve la firma |
+| `response`                                                                     | `{ id, letto, conferma_lettura, conferma_motivazione, adesione, adesione_motivazione, testo_risposta, allegati_risposta[], documenti_firmati[] }`; `adesione` è `"1"` aderisco, `"0"` non aderisco, `"2"` preferisco non dirlo |
+
+Gli elementi di `communications_minister` hanno `titoloComunicazione`, `sottotitoloComunicazione`, `contenutoComunicazione`, `urlNotizia`, `urlAnteprimaNotizia`, `labelUrl`, `dataInizioVisibilitaAccesso`, `dataFineVisibilitaAccesso` e `record_status`.
+
 Azioni correlate (tutte sotto `/rest/w1/noticeboarduser/{studentId}`):
 
-| Metodo | Percorso |
-|---|---|
-| GET | `/attachments/{a}/{b}/{c}` |
-| POST | `/response/{a}/{b}` |
-| POST | `/file_response/{a}/{b}` |
-| DELETE | `/file_response/{a}/{b}/{c}` |
-| GET | `/signature/{a}/{b}/{c}` |
-| POST | `/signature/{a}/{b}/{c}/{d}` |
-| POST | `/communication/{a}/{b}/signer` |
+| Metodo | Percorso                                                              | Body                                                                                                                                  |
+| ------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/attachments/{annoScol}/{communicationId}/{attachmentId}`            | file binario                                                                                                                          |
+| POST   | `/response/{annoScol}/{communicationId}`                              | JSON con le sole chiavi richieste: `conferma_lettura` (`1`/`0`), `conferma_motivazione`, `adesione` (`1`/`0`/`2`), `adesione_motivazione`, `testo_risposta`. `{}` segna la comunicazione come letta |
+| POST   | `/file_response/{annoScol}/{communicationId}`                         | multipart: `files[0]` = file, `payload` = JSON `{ "descrizione": "nome.ext", "risposta_id": <response.id>, "comunicazione_id": "<id>" }` |
+| DELETE | `/file_response/{annoScol}/{communicationId}/{fileResponseId}`        |                                                                                                                                       |
+| GET    | `/signature/{annoScol}/{communicationId}/{attachmentId}`              |                                                                                                                                       |
+| POST   | `/signature/{annoScol}/{communicationId}/{attachmentId}/{type}`       | `type` = `pv` (nessun body) oppure `fg` (body `{ "base64Sign": "<immagine della firma disegnata>" }`)                                 |
+| POST   | `/communication/{annoScol}/{communicationId}/signer`                  |                                                                                                                                       |
 
 ---
 
@@ -794,7 +877,7 @@ Restituisce i materiali didattici condivisi dai docenti, organizzati in cartelle
 
 **Risposta:**
 
-```json
+```
 {
   "didacticts": [
     {
@@ -834,10 +917,12 @@ Restituisce i materiali didattici condivisi dai docenti, organizzati in cartelle
 
 **Valori di `objectType` (osservati):**
 
-| Valore | Descrizione |
-|---|---|
+| Valore | Descrizione      |
+| ------ | ---------------- |
 | `file` | File scaricabile |
-| `link` | URL esterno |
+| `link` | URL esterno      |
+
+Il client web gestisce anche `text`.
 
 ---
 
@@ -849,7 +934,7 @@ GET /rest/w1/students/{studentId}/homeworks/index
 
 **Risposta:**
 
-```json
+```
 {
   "items": [
     {
@@ -879,16 +964,16 @@ GET /rest/w1/students/{studentId}/homeworks/index
 }
 ```
 
-Azioni correlate (tutte sotto `/rest/w1/students/{studentId}/homeworks`):
+Azioni correlate (tutte sotto `/rest/w1/students/{studentId}/homeworks`; `{evtCode}` e `{evtId}` vengono dall'elemento dell'elenco) **(dal sorgente del client)**:
 
-| Metodo | Percorso |
-|---|---|
-| GET | `/downloadTeacherFile/{a}/{b}/{c}` |
-| GET | `/downloadStudentFile/{a}/{b}/{c}` |
-| POST | `/insertStudentMsg/{a}/{b}` |
-| POST | `/uploadStudentFile/{a}/{b}` |
-| POST | `/removeStudentFile/{a}/{b}/{c}` |
-| POST | `/setTeacherMsgStatus/{a}/{b}` |
+| Metodo | Percorso                                          | Body                                                       |
+| ------ | ------------------------------------------------- | ---------------------------------------------------------- |
+| GET    | `/downloadTeacherFile/{evtCode}/{evtId}/{fileId}` | file binario                                               |
+| GET    | `/downloadStudentFile/{evtCode}/{evtId}/{fileId}` | file binario                                               |
+| POST   | `/insertStudentMsg/{evtCode}/{evtId}`             | `{ "studentMsg": "..." }`                                  |
+| POST   | `/uploadStudentFile/{evtCode}/{evtId}`            | `{ "filename": "nome.ext", "file": "<base64>" }` (un file per chiamata, base64 senza il prefisso `data:`) |
+| POST   | `/removeStudentFile/{evtCode}/{evtId}/{fileId}`   |                                                            |
+| POST   | `/setTeacherMsgStatus/{evtCode}/{evtId}`          | `{ "messageRead": true }`                                  |
 
 #### Segna compito come fatto
 
@@ -904,7 +989,7 @@ homeworkMarkedDone: true // or false
 
 **Risposta**:
 
-```json
+```
 {
   "evtId": 125021,
   "evtCode": "NEWDC",
@@ -939,11 +1024,11 @@ GET /rest/w1/students/{studentId}/notes/all/
 POST /rest/w1/students/{studentId}/notes/{type}/read/{id}
 ```
 
-Restituisce le note disciplinari per categoria. La `POST` ne segna una come letta.
+Restituisce le note disciplinari per categoria. La `POST` ne segna una come letta (`{type}` è una delle chiavi qui sotto, `{id}` è l'`evtId` della nota).
 
 **Risposta:**
 
-```json
+```
 {
   "NTTE": [],
   "NTCL": [],
@@ -954,12 +1039,14 @@ Restituisce le note disciplinari per categoria. La `POST` ne segna una come lett
 
 **Chiavi dei tipi di nota:**
 
-| Chiave | Significato |
-|---|---|
+| Chiave | Significato             |
+| ------ | ----------------------- |
 | `NTTE` | Annotazione del docente |
-| `NTCL` | Nota disciplinare |
-| `NTWN` | Richiamo |
-| `NTST` | Sanzione disciplinare |
+| `NTCL` | Nota disciplinare       |
+| `NTWN` | Richiamo                |
+| `NTST` | Sanzione disciplinare   |
+
+Campi letti dal client web: `evtId`, `evtDate`, `evtBegin`, `evtEnd`, `evtText`, `warningType`, `authorName`, `readStatus` (`false` = non letta) **(dal sorgente del client)**.
 
 ---
 
@@ -975,12 +1062,48 @@ Restituisce le pagelle (scrutini) e altri documenti. Body vuoto. `read` restitui
 
 **Risposta:**
 
-```json
+```
 {
   "documents": [],
   "schoolReports": []
 }
 ```
+
+`documents/check/{hash}` risponde `{ "document": { "available": true } }` **(dal sorgente del client)**.
+
+---
+
+### Recuperi
+
+```
+GET /rest/w1/students/{studentId}/recoveries/list/{session}
+```
+
+Restituisce i corsi / le prove di recupero di una sessione di scrutinio **(dal sorgente del client)**. `{session}` è `S1`, `S2`, `S3` oppure `SD` (scrutinio differito).
+
+**Risposta:**
+
+```
+{
+  "recoveries": [
+    {
+      "evento_id": "1",
+      "materia_desc": "MATEMATICA",
+      "recupero_descr": "Corso di recupero",
+      "tipo_prova_descr": "Prova scritta",
+      "argomento": "...",
+      "nota_1": "",
+      "nota_2": "",
+      "esito_prova_descr": "",
+      "grades": [{ "displayValue": "6", "color": "green" }],
+      "adesione": null
+    }
+  ]
+}
+```
+
+> `adesione`: `null` = non ancora scelto, `1` = aderito, `0` = non aderito. La forma sopra elenca i campi letti dal client; i valori sono d'esempio.
+> Il client web non invia l'adesione al server: `postRecoveryAdhesion` è uno stub che restituisce `{ status: true }` senza nessuna chiamata di rete.
 
 ---
 
@@ -997,7 +1120,7 @@ GET /rest/w1/parents/{studentId}/overalltalks/list
 
 **Risposta di `talks/teachers`:**
 
-```json
+```
 {
   "teachers": [
     {
@@ -1014,7 +1137,7 @@ GET /rest/w1/parents/{studentId}/overalltalks/list
 
 **Risposta di `talks/getframes`** (`teacherId` è l'id numerico, senza il prefisso `A`):
 
-```json
+```
 {
   "frames": [
     {
@@ -1042,19 +1165,21 @@ GET /rest/w1/parents/{studentId}/overalltalks/list
 
 `mytalks` restituisce `{"talks": []}` e `overalltalks/list` restituisce `{"overallTalks": []}` quando sono vuoti.
 
-Prenotazione e messaggi (tutti sotto `/rest/w1/parents/{studentId}`):
+Prenotazione e messaggi (tutti sotto `/rest/w1/parents/{studentId}`) **(dal sorgente del client)**:
 
-| Metodo | Percorso |
-|---|---|
-| GET | `/talks/teachersframes2/{dateFrom}/{dateTo}` |
-| GET | `/talks/mytalks/{dateFrom}/{dateTo}` |
-| POST | `/talks/book/{a}/{b}/{c}` |
-| POST | `/talks/delete/{a}` |
-| POST | `/talks/mymessage/{a}` |
-| POST | `/talks/teachermessage/{a}` |
-| GET | `/overalltalks/getframes/{a}/{b}` |
-| POST | `/overalltalks/book/{a}/{b}/{c}/{d}` |
-| POST | `/overalltalks/delete/{a}/{b}` |
+| Metodo | Percorso                                                          | Body                                                                                                   |
+| ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| GET    | `/talks/teachersframes2/{dateFrom}/{dateTo}`                      |                                                                                                        |
+| GET    | `/talks/mytalks/{dateFrom}/{dateTo}`                              |                                                                                                        |
+| POST   | `/talks/book/{teacherId}/{frameId}/{slotMask}`                    | `{ "cell": "...", "email": "...", "altro": "..." }`: `cell` ed `email` solo se la scuola li richiede, `altro` sempre (può essere vuoto); `slotMask` è la bitmask dello slot prenotato (`1` = primo slot) |
+| POST   | `/talks/delete/{talkId}`                                          |                                                                                                        |
+| POST   | `/talks/mymessage/{talkId}`                                       | `{ "myMsg": "..." }` (stringa vuota = elimina l'avviso)                                                |
+| POST   | `/talks/teachermessage/{talkId}`                                  | `{ "messageRead": true }`                                                                              |
+| GET    | `/overalltalks/getframes/{overallTalkId}/{teacherId}`             |                                                                                                        |
+| POST   | `/overalltalks/book/{overallTalkId}/{teacherId}/{availabilityId}/{slotNumber}` | `{ "altro": "..." }` (`availabilityId` è l'`evtFrameId` dello slot)                       |
+| POST   | `/overalltalks/delete/{overallTalkId}/{eventId}`                  |                                                                                                        |
+
+Campi dei colloqui letti dal client web: `talkId`, `myMsg` (avviso del genitore), `teacherMsg`, `flagNewMsg` (messaggio del docente non letto), `flagMsgReadByTeacher`, `live_link` (URL del colloquio a distanza); colloqui generali: `overallTalkId`, `overallTalkDesc`, `evtFrameId`, `slotNumber`.
 
 ---
 
@@ -1066,7 +1191,7 @@ GET /rest/w1/parents/{studentId}/pagoonline/payments
 
 **Risposta:**
 
-```json
+```
 {
   "items": [
     {
@@ -1101,28 +1226,31 @@ GET /rest/w1/parents/{studentId}/pagoonline/payments
 ```
 
 **Note:**
+
 - `evtType`: `POL01` (gite / attività), `POL02` (contributi volontari / quote)
 - L'elenco include pagamenti di anni scolastici precedenti: filtra su `schoolYear`
 - Le rate non pagate hanno `payId: 0`, `payKey: null`, `payDate: null`
 
 **Valori di `payStatus`:**
 
-| Valore | Significato |
-|---|---|
-| `0`-`3` | Da pagare |
-| `4`-`8` | Pagato |
-| `9` | Rimborsato |
-| `10` | Annullato |
+| Valore  | Significato |
+| ------- | ----------- |
+| `0`-`3` | Da pagare   |
+| `4`-`8` | Pagato      |
+| `9`     | Rimborsato  |
+| `10`    | Annullato   |
 
-Correlati (tutti sotto `/rest/w1/parents/{studentId}/pagoonline`):
+Correlati (tutti sotto `/rest/w1/parents/{studentId}/pagoonline`) **(dal sorgente del client)**:
 
-| Metodo | Percorso |
-|---|---|
-| GET | `/downloadfile/{a}` |
-| GET | `/downloadpayment/{a}/{b}` |
-| GET | `/getprivacy` |
-| POST | `/setprivacy` |
-| POST | `/downloadfileprivacy/{a}` |
+| Metodo | Percorso                                | Note                                                     |
+| ------ | --------------------------------------- | -------------------------------------------------------- |
+| GET    | `/downloadfile/{attachId}`              | allegato dell'avviso (`attachments[].attachId`), binario |
+| GET    | `/downloadpayment/{evtId}/{payKey}`     | avviso / ricevuta di pagamento, binario                  |
+| GET    | `/getprivacy`                           |                                                          |
+| POST   | `/setprivacy`                           | body sconosciuto (nessun chiamante nel client web)       |
+| POST   | `/downloadfileprivacy/{fileId}`         | binario                                                  |
+
+Il pagamento vero e proprio non passa dall'API: il client web rimanda a `https://www.istruzione.it/pagoinrete/`.
 
 ---
 
@@ -1136,7 +1264,7 @@ Restituisce l'elenco dei libri di testo adottati per il corso dello studente.
 
 **Risposta:**
 
-```json
+```
 {
   "schoolbooks": [
     {
@@ -1168,45 +1296,163 @@ Restituisce l'elenco dei libri di testo adottati per il corso dello studente.
 }
 ```
 
+Il client web legge anche `classNotes` (note per la famiglia in HTML) da ogni corso **(dal sorgente del client)**.
+
+---
+
+### Feedback
+
+```
+GET  /rest/w1/students/{studentId}/newui-feedback
+POST /rest/w1/students/{studentId}/newui-feedback
+```
+
+Valutazione e commenti sul portale web **(dal sorgente del client)**.
+
+**Body di `POST`** (JSON, almeno uno dei due campi):
+
+```
+{ "comment": "Testo libero", "score": 4 }
+```
+
+- `score`: intero da `0` a `5`
+- `comment`: al massimo 2000 caratteri
+
+**Risposta** (entrambi i metodi):
+
+```
+{
+  "score": { "score": 4 },
+  "commentsLeft": 4,
+  "comments": []
+}
+```
+
+> `commentsLeft` parte da 5: è il numero di commenti che lo studente può ancora inviare.
+
+---
+
+### Mensa
+
+Tutti i percorsi sono sotto `/rest/w1/canteenuser/{studentId}`. Le forme qui sotto sono **dal sorgente del client**.
+
+`{canteenCode}` è `pranzo` (default) oppure `cena` (solo se `options.gestione_cena` è `1`). A differenza del resto dell'API, le date in questi percorsi sono `YYYY-MM-DD` (con i trattini).
+
+| Metodo | Percorso                                                       | Descrizione                                              |
+| ------ | -------------------------------------------------------------- | -------------------------------------------------------- |
+| GET    | `/options/{canteenCode}`                                       | Configurazione del servizio (vedi sotto)                 |
+| GET    | `/events/{canteenCode}/{dateFrom}/{dateTo}`                    | `{ "events": [] }` calendario dell'intervallo            |
+| POST   | `/events/{canteenCode}/{date}`                                 | Prenota, cambia scelta o disdici un pasto                |
+| GET    | `/booking_state/{canteenCode}/{date}`                          | Cosa si può fare in quel giorno                          |
+| GET    | `/profile/{canteenCode}`                                       | `{ "profile": [{ "opzioni": [] }] }` opzioni selezionabili |
+| GET    | `/menu/{canteenCode}`                                          | Array di menù `[{ "code": "..." }]`                      |
+| GET    | `/summary_meals/{canteenCode}`                                 | `{ "data": {} }` riepilogo dei buoni pasto               |
+| GET    | `/wallet`                                                      | `{ "valore": 12.5 }` saldo del borsellino in EUR         |
+| GET    | `/file_menu/{canteenCode}/{dateStart}/{dateStop}/{filterType}` | `{ "file_menu": [] }` file PDF dei menù                  |
+| GET    | `/download_file/{canteenCode}/{fileId}`                        | PDF binario                                              |
+
+**Body di `POST /events/{canteenCode}/{date}`** (prenotare, cambiare scelta e disdire sono la stessa chiamata):
+
+```
+{
+  "evento_codice": "M",
+  "id_pagamento": null,
+  "menu": "",
+  "opzione": ""
+}
+```
+
+- `evento_codice`: il `scelte[].codice` scelto da `booking_state`. La disdetta usa la scelta il cui codice inizia con `MPA`.
+- `id_pagamento`: `booking_state.contesto.id_pagamento`, oppure `null`.
+- `menu`, `opzione`: `code` del menù e codice dell'opzione; stringa vuota se la scelta non mostra quel campo (`scelte[].campi.menu.visibile`, `scelte[].campi.opzione.visibile`).
+
+**Risposta di `booking_state`:**
+
+```
+{
+  "fase": "libero",
+  "contesto": { "evento_codice": "", "menu": "", "opzione": "", "id_pagamento": null },
+  "scelte": [
+    {
+      "codice": "M",
+      "azione": "prenota",
+      "visibile": true,
+      "abilitata": true,
+      "evento_prenotazione": "",
+      "campi": { "menu": { "visibile": true }, "opzione": { "visibile": false } }
+    }
+  ],
+  "popup": { "tipo": "avviso", "message": "", "ref": "" }
+}
+```
+
+- `fase`: `libero` (non prenotato), `prenotato`, `confermato`.
+- `popup.ref` spiega perché non si può prenotare: `avviso_ora` ora limite superata, `avviso` data fuori dalla finestra di prenotazione o giorno di chiusura, `sola_visualizzazione` pagina in sola consultazione, `no_prenotazione` giorno non previsto dal profilo mensa dello studente, `avviso_profilo` nessun profilo mensa assegnato, `avviso_profilo_no_prenotazione` profilo non abilitato alla prenotazione, `avviso_saldo_non_disponibile` buoni pasto o borsellino insufficienti, `studente_minorenne` possono prenotare solo gli studenti maggiorenni, `studente_non_abilitato` account non abilitato.
+
+**`events[].evento_codice`:**
+
+| Codice             | Significato                                |
+| ------------------ | ------------------------------------------ |
+| `v` / `s` / `f`    | Vacanza / giorno di scuola / festivo       |
+| `M`, `MC`, `MTU`   | Mensa (`MC` cena, `MTU` turno mensa)       |
+| `MPM`, `MPMC`      | Pasto in bianco (`MPMC` cena)              |
+| `MP`, `MPC`        | Prenotazione (`MPC` cena)                  |
+| `N`, `MD`, `MDC`   | No pasto / disdetto (`MDC` cena)           |
+| `MPA`, `MPAC`      | Prenotazione annullata (`MPAC` cena)       |
+| `-`                | Nessuna prenotazione                       |
+
+Gli elementi di `events[]` hanno anche `stato_giorno` (`scuola`, `vacanza`, `festivo`), `menu` e `opzione`.
+
+**Campi di `options`** (flag `0`/`1` salvo diversa indicazione): `current_date`, `current_time`, `inizio_anno`, `fine_anno` (limiti dell'anno scolastico), `gestione_cena` (cena abilitata), `profilo_disponibile`, `wallet_disponibile`, `sola_visualizzazione` (sola consultazione), `segremat_attivo`, `sgmt_addebito_prenotazione` (addebito al momento della prenotazione), `sgmt_scelta_opzione` / `sgmt_scelta_opzione_obb` (opzione selezionabile / obbligatoria), `cvv_paritarie`, `ora_prenotazione` (ora limite di prenotazione), `codice_tim`, `eventi_codice`.
+
+**Campi di `summary_meals.data`:** `buoni_pasti_rimanenti` (o `saldo_buoni`) buoni residui, `totale_pasti` (o `pasti_consumati`) pasti utilizzati, `totale_buoni_pasto` buoni acquistati (se manca il client usa residui + utilizzati).
+
+**`file_menu`:** `filterType` è `0` tutti (usa `1970-01-01` / `2099-12-31` oppure i limiti anno di `options`), `1` giorno singolo (`dateStop` = `dateStart`), `2` intervallo di date. Elementi: `id_evento` / `id_file`, `descrizione`, `file_name`, `file_path` (usato direttamente se è un URL assoluto), `note`, `data_start`, `data_stop`.
+
+---
+
+### Appello (Attività extra)
+
+Tutti i percorsi sono sotto `/rest/w1/rollcall/{studentId}`. Le forme qui sotto sono **dal sorgente del client**. `{code}` è `SPA1` (default) oppure `SPA2`; le date in questi percorsi sono `YYYY-MM-DD`.
+
+| Metodo | Percorso                                  | Descrizione                                             |
+| ------ | ----------------------------------------- | ------------------------------------------------------- |
+| GET    | `/options/{code}`                         | Configurazione (gli stessi flag di `options` della mensa, più `ora_prenotazione`, `inizio_anno`, `fine_anno`, `eventi_codice.tipologia`) |
+| GET    | `/events/{code}/{dateFrom}/{dateTo}`      | `{ "events": [] }`                                      |
+| POST   | `/events/{code}`                          | Prenota un'attività                                     |
+| PUT    | `/events/{code}/{eventId}`                | Modifica una prenotazione                               |
+| DELETE | `/events/{code}/{eventId}`                | Annulla una prenotazione (con body)                     |
+| GET    | `/booking_state/{code}/{date}`            | Stessa forma del `booking_state` della mensa            |
+| GET    | `/assets/{code}`                          | Risorse (codice di default `SPA1`)                      |
+
+**Body di `POST` / `PUT`:**
+
+```
+{
+  "evento_data": "2026-11-12",
+  "evento_data_ora": "2026-11-12 08:00:00",
+  "opzione_codice": "...",
+  "evento_prenotazione": "PA1"
+}
+```
+
+- `evento_prenotazione`: `PA1` per `SPA1`, `PA2` per `SPA2` (oppure `scelte[azione=prenota].evento_prenotazione` da `booking_state`).
+- `PUT` aggiunge `"id": <eventId>` al body.
+- `opzione_codice` viene da `GET /canteenuser/{studentId}/profile/attivita_1` (o `attivita_2`), campo `profile[0].opzioni`.
+
+**Body di `DELETE`:** `{ "evento_prenotazione": "PA1" }` (preso dalla scelta di `booking_state` con `azione: "annulla"`).
+
+**Campi di `events[]`:** la data è in `data`, `giorno` o `evento_data`; l'id in `id`, `id_evento`, `eventi.extra.id_evento` o `eventi.attivita.id_evento`; `evento_codice` (`ATT` / `SPA*` attività svolta, `PA*` prenotazione, `v` / `s` / `f` come nella mensa), `stato_giorno`.
+
 ---
 
 ### Altri endpoint
 
-Risposte non ancora documentate. `{a}`, `{b}`, ... sono id posizionali.
+Fuori da `/rest/w1`, stessa origine (`https://web.spaggiari.eu`) e stessi cookie di sessione **(dal sorgente del client)**:
 
-**Studenti**
-
-| Metodo | Percorso |
-|---|---|
-| GET | `/students/{id}/recoveries/list/{a}` |
-| ? | `/students/{id}/newui-feedback` |
-
-**Mensa**
-
-| Metodo | Percorso | 
-|---|---|
-| GET | `/canteenuser/{userId}/options/{service}` |
-| GET | `/canteenuser/{userId}/events/{service}/{dateFrom}/{dateTo}` |
-| POST | `/canteenuser/{userId}/events/{service}/{date}` | 
-| GET | `/canteenuser/{userId}/booking_state/{date}/{service?}` | 
-| GET | `/canteenuser/{userId}/profile/{service}` |
-| GET | `/canteenuser/{userId}/menu/{service}` | 
-| GET | `/canteenuser/{userId}/summary_meals/{service}` |
-| GET | `/canteenuser/{userId}/wallet` | 
-| GET | `/canteenuser/{userId}/file_menu/{a}/{b}/{c}/{d}` | 
-| GET | `/canteenuser/{userId}/download_file/{fileId}/{param}` | 
-
-**Appello**
-
-| Metodo | Percorso |
-|---|---|
-| GET | `/rollcall/{userId}/options/{service}` | 
-| GET | `/rollcall/{userId}/events/{service}/{dateFrom}/{dateTo}` | 
-| POST | `/rollcall/{userId}/events/{service}` |
-| PUT | `/rollcall/{userId}/events/{service}/{eventId}` | 
-| DELETE | `/rollcall/{userId}/events/{service}/{eventId}` | 
-| GET | `/rollcall/{userId}/booking_state/{date}/{service?}` | 
-| GET | `/rollcall/{userId}/assets/{assetCode}` | 
+| Metodo | Percorso                                                                      | Descrizione                                                      |
+| ------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| GET    | `/acc/app/default/me.fn.php?act=acEmailMsgFwdSwitch&flag_send_mail={0 o 1}`   | Disattiva (`0`) / attiva (`1`) l'inoltro dei messaggi scolastici via e-mail |
 
 ---
 
@@ -1214,34 +1460,36 @@ Risposte non ancora documentate. `{a}`, `{b}`, ... sono id posizionali.
 
 ### Formati di data / data e ora
 
-| Formato | Esempio | Usato in |
-|---|---|---|
-| `YYYY-MM-DD` | `2026-10-24` | voti, assenze, lezioni, compiti, periodi |
-| `YYYY-MM-DDTHH:MM:SS+HH:MM` | `2026-10-21T16:01:14+02:00` | agenda, bacheca, didattica |
-| `YYYYMMDD` | `20260901` | parametri nei percorsi URL (agenda, lezioni, panoramica, assenze, colloqui) |
+| Formato                     | Esempio                     | Usato in                                                                    |
+| --------------------------- | --------------------------- | --------------------------------------------------------------------------- |
+| `YYYY-MM-DD`                | `2026-10-24`                | voti, assenze, lezioni, compiti, periodi, parametri URL di mensa e appello  |
+| `YYYY-MM-DDTHH:MM:SS+HH:MM` | `2026-10-21T16:01:14+02:00` | agenda, bacheca, didattica                                                  |
+| `YYYYMMDD`                  | `20260901`                  | parametri nei percorsi URL (agenda, lezioni, panoramica, assenze, colloqui) |
 
 ### Tipi di ID comuni
 
-| Campo | Tipo | Esempio |
-|---|---|---|
-| ID numerico dello studente | intero (stringa in `whoami`) | `12345678` |
-| Codice identificativo dello studente | stringa | `S12345678C` |
-| ID docente in materie / didattica | stringa con prefisso `A` | `A1234567` |
-| ID docente in compiti / colloqui | intero | `1234567` |
-| ID materia | intero | `210068` |
-| ID evento | intero | `630205` |
+| Campo                                | Tipo                         | Esempio      |
+| ------------------------------------ | ---------------------------- | ------------ |
+| ID numerico dello studente           | intero (stringa in `whoami`) | `12345678`   |
+| Codice identificativo dello studente | stringa                      | `S12345678C` |
+| ID docente in materie / didattica    | stringa con prefisso `A`     | `A1234567`   |
+| ID docente in compiti / colloqui     | intero                       | `1234567`    |
+| ID materia                           | intero                       | `210068`     |
+| ID evento                            | intero                       | `630205`     |
 
 > Le collezioni vuote che normalmente sono oggetti (es. `periodAverages`) arrivano come `[]`, quindi controlla `Array.isArray` prima di leggere le chiavi.
 
 ### Particolarità da gestire
 
-| Particolarità | Dove |
-|---|---|
-| Le collezioni vuote che normalmente sono oggetti arrivano come `[]` | `periodAverages`, `generalAverages` |
-| `decimalValue: null` per i giudizi (`"ds"`, `"o"`) | voti, `latestGrades` della dashboard |
-| `subjectCode: null` | lezioni, medie |
-| ID docente con prefisso `A` (stringa) oppure numerico | materie / didattica contro compiti / colloqui |
-| L'id dello studente è una stringa in `whoami`, un intero altrove | whoami |
+| Particolarità                                                       | Dove                                          |
+| ------------------------------------------------------------------- | --------------------------------------------- |
+| Le collezioni vuote che normalmente sono oggetti arrivano come `[]` | `periodAverages`, `generalAverages`           |
+| `decimalValue: null` per i giudizi (`"ds"`, `"o"`)                  | voti, `latestGrades` della dashboard          |
+| `subjectCode: null`                                                 | lezioni, medie                                |
+| ID docente con prefisso `A` (stringa) oppure numerico               | materie / didattica contro compiti / colloqui |
+| L'id dello studente è una stringa in `whoami`, un intero altrove    | whoami                                        |
+| Date con i trattini (`YYYY-MM-DD`) invece di `YYYYMMDD` nei percorsi | mensa, appello                               |
+| L'adesione ai recuperi non viene mai inviata dal client web         | recuperi                                      |
 
 ---
 
@@ -1250,6 +1498,7 @@ Risposte non ancora documentate. `{a}`, `{b}`, ... sono id posizionali.
 Hai trovato un nuovo endpoint? Hai notato un errore? PR e issue sono benvenute.
 
 Quando aggiungi un nuovo endpoint, includi per favore:
+
 - Il pattern completo dell'URL
 - Cookie / autenticazione richiesti
 - Almeno una risposta di esempio anonimizzata
